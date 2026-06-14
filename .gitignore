@@ -1,0 +1,43 @@
+# --- macOS / Xcode / iOS ---
+.DS_Store
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+DerivedData/
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+Pods/
+
+# --- Android / Kotlin / Gradle ---
+*.iml
+.gradle/
+local.properties
+.idea/
+android/app/build/
+android/build/
+captures/
+*.apk
+*.aab
+*.keystore
+
+# --- Node (backend tooling / mock API) ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.local
+dist/
+
+# --- Python (if backend is Python) ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# --- General ---
+*.log
+.cache/
+tmp/
