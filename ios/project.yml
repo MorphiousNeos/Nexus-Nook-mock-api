@@ -29,3 +29,12 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1,2"
         GENERATE_INFOPLIST_FILE: false
+schemes:
+  NexusNook:
+    build:
+      targets:
+        NexusNook: all
+    run:
+      config: Debug
+    archive:
+      config: Release
