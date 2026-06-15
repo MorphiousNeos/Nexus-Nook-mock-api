@@ -62,11 +62,12 @@ final class APIClient {
         return response.servers
     }
 
-    func connectRSI(rsiEmail: String) async throws -> RSIConnectResponse {
+    /// Links a user's PUBLIC RSI handle. No credentials are sent — see docs/COMPLIANCE.md.
+    func connectRSI(rsiHandle: String) async throws -> RSIConnectResponse {
         try await request(
             "/api/rsi/connect",
             method: .post,
-            body: ["rsiEmail": rsiEmail]
+            body: ["rsiHandle": rsiHandle]
         )
     }
 

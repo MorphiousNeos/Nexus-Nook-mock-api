@@ -118,6 +118,15 @@ fun LoginScreen(viewModel: AuthViewModel) {
                     else "Need an account? Register",
                 )
             }
+
+            Text(
+                "Nexus Nook is an unofficial fan-made app and is not affiliated with or " +
+                    "endorsed by Cloud Imperium Games. Star Citizen® and related marks are " +
+                    "trademarks of Cloud Imperium Rights LLC.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
         }
     }
 }

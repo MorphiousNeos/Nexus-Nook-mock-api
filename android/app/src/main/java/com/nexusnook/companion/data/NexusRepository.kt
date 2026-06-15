@@ -45,8 +45,8 @@ class NexusRepository(
     suspend fun serverStatus(): Result<List<ServerStatus>> =
         runCatchingApi { api.serverStatus().servers }
 
-    suspend fun rsiConnect(rsiEmail: String): Result<RsiConnectResponse> =
-        runCatchingApi { api.rsiConnect(RsiConnectRequest(rsiEmail)) }
+    suspend fun rsiConnect(rsiHandle: String): Result<RsiConnectResponse> =
+        runCatchingApi { api.rsiConnect(RsiConnectRequest(rsiHandle)) }
 
     suspend fun rsiSync(): Result<RsiSyncResponse> =
         runCatchingApi { api.rsiSync() }

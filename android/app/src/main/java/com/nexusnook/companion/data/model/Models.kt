@@ -91,7 +91,8 @@ data class LoginRequest(
 
 @Serializable
 data class RsiConnectRequest(
-    val rsiEmail: String,
+    // Public RSI citizen handle only — never a password. See docs/COMPLIANCE.md.
+    val rsiHandle: String,
 )
 
 // --- RSI responses ---

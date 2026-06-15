@@ -77,11 +77,11 @@ class DashboardViewModel(private val repository: NexusRepository) : ViewModel() 
         }
     }
 
-    fun connectRsi(rsiEmail: String) {
-        if (rsiEmail.isBlank()) return
+    fun connectRsi(rsiHandle: String) {
+        if (rsiHandle.isBlank()) return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(rsiBusy = true)
-            val result = repository.rsiConnect(rsiEmail.trim())
+            val result = repository.rsiConnect(rsiHandle.trim())
             _uiState.value = _uiState.value.copy(rsiBusy = false)
             handleRsiResult(
                 result.map { it.message ?: "RSI account connected" },

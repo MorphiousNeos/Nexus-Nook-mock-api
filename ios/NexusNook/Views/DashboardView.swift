@@ -5,7 +5,7 @@ struct DashboardView: View {
     @StateObject private var model = DashboardViewModel()
 
     @State private var showConnectSheet = false
-    @State private var rsiEmail = ""
+    @State private var rsiHandle = ""
 
     var body: some View {
         NavigationStack {
@@ -76,7 +76,7 @@ struct DashboardView: View {
             Button {
                 showConnectSheet = true
             } label: {
-                Label("Connect RSI Account", systemImage: "link")
+                Label("Link RSI Handle", systemImage: "link")
             }
             Button {
                 Task { await model.syncRSI(auth: auth) }
@@ -110,31 +110,30 @@ struct DashboardView: View {
     private var connectSheet: some View {
         NavigationStack {
             Form {
-                Section("RSI Email") {
-                    TextField("you@example.com", text: $rsiEmail)
-                        .keyboardType(.emailAddress)
+                Section("Public RSI Handle") {
+                    TextField("e.g. YourCitizenHandle", text: $rsiHandle)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
                 Section {
-                    Text("This uses a mock RSI integration on the backend; any email returns a sample handle and imported ships.")
+                    Text("Enter only your public RSI citizen handle — never your RSI password. Nexus Nook never asks for your RSI login. In development the backend returns sample data.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Connect RSI")
+            .navigationTitle("Link RSI Handle")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { showConnectSheet = false }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Connect") {
-                        let email = rsiEmail
+                    Button("Link") {
+                        let handle = rsiHandle
                         showConnectSheet = false
-                        Task { await model.connectRSI(rsiEmail: email, auth: auth) }
+                        Task { await model.connectRSI(rsiHandle: handle, auth: auth) }
                     }
-                    .disabled(rsiEmail.isEmpty)
+                    .disabled(rsiHandle.isEmpty)
                 }
             }
         }

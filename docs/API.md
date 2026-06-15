@@ -21,9 +21,14 @@ Errors: `401` invalid credentials.
 
 ## RSI integration (auth required)
 
+> **Compliance:** these endpoints work with a user's **public RSI handle only**.
+> They never accept or store RSI passwords and never log into a user's account.
+> See [`COMPLIANCE.md`](COMPLIANCE.md).
+
 ### POST `/api/rsi/connect`
-Body: `{ "rsiEmail" }` (mock — see backend README re: credentials)
+Body: `{ "rsiHandle" }` — the public citizen handle (mock data in dev)
 → `200 { "success": true, "message", "data": { "handle", "organization", "shipsImported" } }`
+Errors: `400` missing/blank handle.
 
 ### POST `/api/rsi/sync`
 → `200 { "success": true, "message", "timestamp" }`

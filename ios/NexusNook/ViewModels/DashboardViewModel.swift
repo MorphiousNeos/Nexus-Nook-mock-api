@@ -37,9 +37,9 @@ final class DashboardViewModel: ObservableObject {
         }
     }
 
-    func connectRSI(rsiEmail: String, auth: AuthViewModel) async {
+    func connectRSI(rsiHandle: String, auth: AuthViewModel) async {
         do {
-            let response = try await api.connectRSI(rsiEmail: rsiEmail)
+            let response = try await api.connectRSI(rsiHandle: rsiHandle)
             rsiResultMessage = "\(response.message)\nHandle: \(response.data.handle)\nOrg: \(response.data.organization)\nShips imported: \(response.data.shipsImported)"
             showRSIResult = true
             await load(auth: auth)

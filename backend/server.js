@@ -67,25 +67,33 @@ const authenticateToken = (req, res, next) => {
 };
 
 // =============================================================================
-// RSI API INTEGRATION
+// RSI PUBLIC PROFILE LOOKUP
 // =============================================================================
-// NOTE: Star Citizen / RSI has no official public API. The methods below are a
-// MOCK used for development. A production implementation would need an approved
-// data source (community APIs, etc.). Do NOT collect users' real RSI passwords
-// without a clear, ToS-compliant integration in place.
+// IMPORTANT COMPLIANCE NOTE:
+// Star Citizen / RSI has no official public API. This client looks up a user's
+// PUBLIC RSI handle (the citizen handle anyone can view at
+// robertsspaceindustries.com/citizens/<handle>). It must NEVER ask for or store
+// a user's RSI password or log into their account on their behalf — doing so
+// breaches RSI's Terms of Service and is an unacceptable security risk.
+//
+// The implementation below is a MOCK for development. A production build must
+// source only publicly-available data through a ToS-compliant community API
+// (see docs/COMPLIANCE.md) and prominently mark the app as unofficial / not
+// affiliated with Cloud Imperium Games.
 class RSIApiClient {
   constructor() {
     this.baseUrl = 'https://robertsspaceindustries.com';
     this.sessionCache = new Map();
   }
 
-  async authenticate(email) {
+  // Looks up public data for a citizen handle. No credentials involved.
+  async lookupPublicProfile(handle) {
     try {
-      console.log('Authenticating with RSI (mock):', email);
+      console.log('Looking up public RSI handle (mock):', handle);
 
       // Mock response for development.
       return {
-        handle: email.split('@')[0],
+        handle,
         organization: 'Nexus Vanguard',
         uec: 750000,
         ships: [
@@ -107,8 +115,8 @@ class RSIApiClient {
         inventory: [],
       };
     } catch (error) {
-      console.error('RSI Auth Error:', error);
-      throw new Error('Failed to authenticate with RSI');
+      console.error('RSI lookup error:', error);
+      throw new Error('Failed to look up RSI handle');
     }
   }
 
@@ -248,13 +256,17 @@ app.post('/api/auth/login', async (req, res) => {
 // RSI INTEGRATION ROUTES
 // -----------------------------------------------------------------------------
 
-// Connect RSI account
+// Link a public RSI handle (no credentials — see compliance note above)
 app.post('/api/rsi/connect', authenticateToken, async (req, res) => {
   try {
-    const { rsiEmail } = req.body;
+    const { rsiHandle } = req.body;
     const userId = req.user.userId;
 
-    const rsiData = await rsiClient.authenticate(rsiEmail);
+    if (!rsiHandle || typeof rsiHandle !== 'string' || !rsiHandle.trim()) {
+      return res.status(400).json({ error: 'A public RSI handle is required' });
+    }
+
+    const rsiData = await rsiClient.lookupPublicProfile(rsiHandle.trim());
 
     await pool.query(
       `UPDATE users

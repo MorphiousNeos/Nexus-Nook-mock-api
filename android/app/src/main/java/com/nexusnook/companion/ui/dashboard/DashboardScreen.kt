@@ -175,7 +175,7 @@ private fun ProfileHeader(user: User?) {
 
 @Composable
 private fun RsiCard(busy: Boolean, viewModel: DashboardViewModel) {
-    var rsiEmail by rememberSaveable { mutableStateOf("") }
+    var rsiHandle by rememberSaveable { mutableStateOf("") }
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -183,19 +183,24 @@ private fun RsiCard(busy: Boolean, viewModel: DashboardViewModel) {
         ) {
             Text("RSI Account", style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(
-                value = rsiEmail,
-                onValueChange = { rsiEmail = it },
-                label = { Text("RSI email") },
+                value = rsiHandle,
+                onValueChange = { rsiHandle = it },
+                label = { Text("Public RSI handle") },
                 singleLine = true,
                 enabled = !busy,
                 modifier = Modifier.fillMaxWidth(),
             )
+            Text(
+                "Enter only your public RSI citizen handle — never your RSI password.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    onClick = { viewModel.connectRsi(rsiEmail) },
-                    enabled = !busy && rsiEmail.isNotBlank(),
+                    onClick = { viewModel.connectRsi(rsiHandle) },
+                    enabled = !busy && rsiHandle.isNotBlank(),
                     modifier = Modifier.weight(1f),
-                ) { Text("Connect") }
+                ) { Text("Link") }
                 OutlinedButton(
                     onClick = { viewModel.syncRsi() },
                     enabled = !busy,

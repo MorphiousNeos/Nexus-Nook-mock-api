@@ -43,7 +43,29 @@ To be finalized from existing design work. Candidate feature set:
 - Mining & refining helpers
 - News / status feed
 
+## Compliance
+
+Star Citizen has no official public API, and third-party apps must respect Cloud
+Imperium Games' terms and IP guidelines. Nexus Nook is built to be compliant:
+
+- **No credential collection.** The app uses only a user's *public* RSI handle —
+  it never asks for, transmits, or stores an RSI password.
+- **Unofficial / not affiliated.** The app displays a clear disclaimer that it is
+  fan-made and not affiliated with or endorsed by Cloud Imperium Games.
+- **Compliant data sources.** Live data is sourced only from community APIs whose
+  terms permit third-party use, with attribution.
+
+See [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) for the full guidance and pre-launch
+checklist. **This is not legal advice — a qualified games/IP attorney should review
+before any public launch.**
+
 ## Getting started
 
 This repo is in early scaffolding. Build/run instructions for each client and the
 backend will be added as those pieces land.
+
+---
+
+*Nexus Nook is an unofficial, fan-made application and is not affiliated with or
+endorsed by Cloud Imperium Games or Roberts Space Industries. Star Citizen® is a
+registered trademark of Cloud Imperium Rights LLC.*

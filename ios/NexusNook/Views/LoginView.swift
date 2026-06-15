@@ -60,6 +60,12 @@ struct LoginView: View {
                         withAnimation { isRegistering.toggle() }
                     }
                     .font(.footnote)
+
+                    Text("Nexus Nook is an unofficial fan-made app and is not affiliated with or endorsed by Cloud Imperium Games. Star Citizen® and related marks are trademarks of Cloud Imperium Rights LLC.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 8)
                 }
                 .padding(24)
             }
