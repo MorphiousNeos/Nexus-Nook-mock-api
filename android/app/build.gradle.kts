@@ -14,14 +14,13 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-
-        // Emulator -> host loopback. Override per build type / real device as needed.
-        buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:3001\"")
     }
 
     buildTypes {
         debug {
             isMinifyEnabled = false
+            // Android emulator alias for the host machine's localhost.
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:3001\"")
         }
         release {
             isMinifyEnabled = true
@@ -29,6 +28,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // TODO: set to your deployed HTTPS backend before shipping a release build.
+            buildConfigField("String", "BASE_URL", "\"https://your-backend.example.com\"")
         }
     }
 
