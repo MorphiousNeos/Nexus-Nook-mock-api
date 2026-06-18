@@ -57,7 +57,7 @@ class DashboardViewModel(private val repository: NexusRepository) : ViewModel() 
             val ships = shipsDeferred.await()
             val servers = serversDeferred.await()
 
-            if (anyUnauthorized(profile, ships, servers)) {
+            if (anyUnauthorized(listOf(profile, ships, servers))) {
                 signOut()
                 return@launch
             }
@@ -117,7 +117,7 @@ class DashboardViewModel(private val repository: NexusRepository) : ViewModel() 
         _unauthorized.emit(Unit)
     }
 
-    private fun anyUnauthorized(vararg results: Result<*>): Boolean =
+    private fun anyUnauthorized(results: List<Result<*>>): Boolean =
         results.any { it.exceptionOrNull() is UnauthorizedException }
 
     class Factory(private val repository: NexusRepository) : ViewModelProvider.Factory {
