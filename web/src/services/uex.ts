@@ -64,12 +64,11 @@ export async function uexGet<T>(path: string): Promise<T> {
     res = await fetch(url, {
       method: 'GET',
       headers: {
-        // UEX surfaces two credential styles: an application token (Bearer) and
-        // a personal "Secret Key" (secret_key header). We send the user's token
-        // both ways so either credential works without the user needing to know
-        // which one they pasted.
+        // Public data endpoints (e.g. /commodities) authenticate with a UEX
+        // Application Access Token created on the UEX "My Apps" page, sent as a
+        // Bearer token. (The personal Secret Key is a different credential, only
+        // needed for user-specific endpoints, which we don't call here.)
         Authorization: `Bearer ${token}`,
-        secret_key: token,
         Accept: 'application/json',
       },
     })
@@ -84,7 +83,7 @@ export async function uexGet<T>(path: string): Promise<T> {
   if (res.status === 401 || res.status === 403) {
     throw new UexError(
       'auth',
-      'UEX rejected the token (it may be invalid or expired). Try changing your token.',
+      'UEX rejected the token. Make sure you pasted your UEX Application Access Token (from UEX → My Apps), not your account Secret Key.',
       res.status,
     )
   }

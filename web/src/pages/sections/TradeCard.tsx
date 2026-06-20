@@ -44,25 +44,27 @@ function TokenForm({ onSaved }: { onSaved: (token: string) => void }) {
   return (
     <form onSubmit={submit} className="space-y-3">
       <p className="text-sm text-slate-300">
-        Connect UEX to see live commodity prices.
+        Connect UEX to see live commodity prices. Use your UEX{' '}
+        <span className="font-semibold text-slate-100">Application Access Token</span>{' '}
+        — not your account Secret Key.
       </p>
       <Field
-        label="UEX API token"
+        label="UEX Application Access Token"
         type="password"
         autoComplete="off"
-        placeholder="Paste your application token"
+        placeholder="Paste your UEX app access token"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         hint="Stored only in this browser — never sent anywhere but UEX."
       />
       <div className="flex items-center justify-between gap-3">
         <a
-          href="https://uexcorp.space"
+          href="https://uexcorp.space/api/apps"
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-purple-300 underline-offset-2 hover:underline"
         >
-          Get a token in your UEX account → Apps
+          Create an app on UEX → My Apps to get an Access Token
         </a>
         <Button type="submit" disabled={!value.trim()}>
           Save
