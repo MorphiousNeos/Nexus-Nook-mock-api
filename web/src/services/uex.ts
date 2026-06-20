@@ -64,7 +64,12 @@ export async function uexGet<T>(path: string): Promise<T> {
     res = await fetch(url, {
       method: 'GET',
       headers: {
+        // UEX surfaces two credential styles: an application token (Bearer) and
+        // a personal "Secret Key" (secret_key header). We send the user's token
+        // both ways so either credential works without the user needing to know
+        // which one they pasted.
         Authorization: `Bearer ${token}`,
+        secret_key: token,
         Accept: 'application/json',
       },
     })
