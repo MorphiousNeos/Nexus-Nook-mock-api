@@ -1,38 +1,12 @@
 // Minimal client for the UEX Corp community API (https://uexcorp.space).
-// The user supplies their own "application token" from their UEX account; we
-// store it only in this browser's localStorage and send it as a Bearer header.
+// Read endpoints (e.g. /commodities, /commodities_prices) are PUBLIC and need
+// no authentication — UEX credentials are only required for posting trades,
+// which this app does not do. So we make plain GET requests with no token.
 
 export const UEX_BASE = 'https://api.uexcorp.space/2.0'
 
-const TOKEN_KEY = 'nexus.uex.token'
-
-export function getToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY)
-  } catch {
-    return null
-  }
-}
-
-export function setToken(token: string): void {
-  try {
-    localStorage.setItem(TOKEN_KEY, token.trim())
-  } catch {
-    // Ignore storage failures (e.g. private mode); the app still works for the
-    // current session via the value the caller already holds.
-  }
-}
-
-export function clearToken(): void {
-  try {
-    localStorage.removeItem(TOKEN_KEY)
-  } catch {
-    // ignore
-  }
-}
-
 /** Distinguishes failure modes so the UI can render the right guidance. */
-export type UexErrorKind = 'no-token' | 'auth' | 'network' | 'http' | 'parse'
+export type UexErrorKind = 'network' | 'http' | 'parse'
 
 export class UexError extends Error {
   kind: UexErrorKind
@@ -47,44 +21,20 @@ export class UexError extends Error {
 }
 
 /**
- * Fetch a UEX endpoint with the Bearer header and return the parsed JSON body.
- * Throws a typed UexError on missing token, auth failure, HTTP error, or a
- * network/CORS failure.
+ * Fetch a public UEX endpoint and return the parsed JSON body. Throws a typed
+ * UexError on a network/CORS failure, an HTTP error, or an unreadable body.
  */
 export async function uexGet<T>(path: string): Promise<T> {
-  const token = getToken()
-  if (!token) {
-    throw new UexError('no-token', 'No UEX token saved. Add your token to continue.')
-  }
-
   const url = `${UEX_BASE}${path.startsWith('/') ? path : `/${path}`}`
 
   let res: Response
   try {
-    res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        // Public data endpoints (e.g. /commodities) authenticate with a UEX
-        // Application Access Token created on the UEX "My Apps" page, sent as a
-        // Bearer token. (The personal Secret Key is a different credential, only
-        // needed for user-specific endpoints, which we don't call here.)
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    })
+    res = await fetch(url, { method: 'GET', headers: { Accept: 'application/json' } })
   } catch {
     // fetch rejects on DNS/network failure and on CORS rejections.
     throw new UexError(
       'network',
-      "Couldn't reach UEX from your browser — this may be a CORS restriction; we may need to route it through a backend.",
-    )
-  }
-
-  if (res.status === 401 || res.status === 403) {
-    throw new UexError(
-      'auth',
-      'UEX rejected the token. Make sure you pasted your UEX Application Access Token (from UEX → My Apps), not your account Secret Key.',
-      res.status,
+      "Couldn't reach UEX from your browser — this may be a temporary CORS or network issue. Try again shortly.",
     )
   }
 
@@ -108,8 +58,7 @@ export type Commodity = {
   priceSell?: number
 }
 
-// The live envelope is uncertain; accept either `{ data: [...] }` or a bare
-// array, and ignore anything that isn't an array of objects.
+// Accept either `{ data: [...] }` or a bare array; ignore anything else.
 function unwrap(body: unknown): unknown[] {
   if (Array.isArray(body)) return body
   if (body && typeof body === 'object') {
@@ -135,9 +84,9 @@ function toStr(value: unknown): string | undefined {
 }
 
 /**
- * Fetch and normalize the commodity list. Field names on the live API are not
- * confirmed, so every access is optional and tolerant of renames; a commodity
- * with no usable name is dropped rather than crashing the table.
+ * Fetch and normalize the commodity list. Field accesses are tolerant of the
+ * live API's naming; a commodity with no usable name is dropped rather than
+ * crashing the table.
  */
 export async function getCommodities(): Promise<Commodity[]> {
   const body = await uexGet<unknown>('/commodities')

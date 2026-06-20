@@ -1,13 +1,6 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button, Card, EmptyState, Field } from '../../components/ui'
-import {
-  clearToken,
-  getCommodities,
-  getToken,
-  setToken,
-  UexError,
-  type Commodity,
-} from '../../services/uex'
+import { getCommodities, UexError, type Commodity } from '../../services/uex'
 
 const ATTRIBUTION =
   'Trade data courtesy of UEX Corp (uexcorp.space) — community-run, not affiliated with CIG or Nexus Nook.'
@@ -30,52 +23,7 @@ function Attribution() {
   return <p className="mt-4 text-[11px] leading-snug text-slate-600">{ATTRIBUTION}</p>
 }
 
-function TokenForm({ onSaved }: { onSaved: (token: string) => void }) {
-  const [value, setValue] = useState('')
-
-  function submit(e: FormEvent) {
-    e.preventDefault()
-    const trimmed = value.trim()
-    if (!trimmed) return
-    setToken(trimmed)
-    onSaved(trimmed)
-  }
-
-  return (
-    <form onSubmit={submit} className="space-y-3">
-      <p className="text-sm text-slate-300">
-        Connect UEX to see live commodity prices. Use your UEX{' '}
-        <span className="font-semibold text-slate-100">Application Access Token</span>{' '}
-        — not your account Secret Key.
-      </p>
-      <Field
-        label="UEX Application Access Token"
-        type="password"
-        autoComplete="off"
-        placeholder="Paste your UEX app access token"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        hint="Stored only in this browser — never sent anywhere but UEX."
-      />
-      <div className="flex items-center justify-between gap-3">
-        <a
-          href="https://uexcorp.space/api/apps"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-purple-300 underline-offset-2 hover:underline"
-        >
-          Create an app on UEX → My Apps to get an Access Token
-        </a>
-        <Button type="submit" disabled={!value.trim()}>
-          Save
-        </Button>
-      </div>
-    </form>
-  )
-}
-
 export default function TradeCard() {
-  const [token, setTokenState] = useState<string | null>(() => getToken())
   const [commodities, setCommodities] = useState<Commodity[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -83,7 +31,6 @@ export default function TradeCard() {
   const [sort, setSort] = useState<SortKey>('margin')
 
   const load = useCallback(async () => {
-    if (!getToken()) return
     setLoading(true)
     setError(null)
     try {
@@ -102,16 +49,8 @@ export default function TradeCard() {
   }, [])
 
   useEffect(() => {
-    if (token) void load()
-  }, [token, load])
-
-  function changeToken() {
-    clearToken()
-    setTokenState(null)
-    setCommodities([])
-    setError(null)
-    setFilter('')
-  }
+    void load()
+  }, [load])
 
   const filteredSorted = useMemo(() => {
     const q = filter.trim().toLowerCase()
@@ -138,42 +77,23 @@ export default function TradeCard() {
 
   const visible = filteredSorted.slice(0, MAX_ROWS)
 
-  if (!token) {
-    return (
-      <Card title="Trade" icon="💱">
-        <TokenForm
-          onSaved={(t) => {
-            setTokenState(t)
-          }}
-        />
-        <Attribution />
-      </Card>
-    )
-  }
-
   return (
     <Card title="Trade" icon="💱">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-slate-400">Live Star Citizen commodity prices.</p>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={load} disabled={loading}>
-            {loading ? 'Loading…' : 'Refresh'}
-          </Button>
-          <Button variant="ghost" onClick={changeToken}>
-            Change token
-          </Button>
-        </div>
+        <p className="text-xs text-slate-400">
+          Live Star Citizen commodity prices — no login needed.
+        </p>
+        <Button variant="ghost" onClick={load} disabled={loading}>
+          {loading ? 'Loading…' : 'Refresh'}
+        </Button>
       </div>
 
       {error && (
         <div className="space-y-3">
           <EmptyState>{error}</EmptyState>
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center">
             <Button onClick={load} disabled={loading}>
               {loading ? 'Retrying…' : 'Retry'}
-            </Button>
-            <Button variant="ghost" onClick={changeToken}>
-              Change token
             </Button>
           </div>
         </div>
