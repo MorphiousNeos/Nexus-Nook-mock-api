@@ -18,4 +18,5 @@ export function getStore(): Store {
   return instance
 }
 
-export const DISCORD_INVITE: string | undefined = import.meta.env.VITE_DISCORD_INVITE
+export const DISCORD_INVITE: string =
+  import.meta.env.VITE_DISCORD_INVITE || 'https://discord.gg/jSf78Xxtky'
