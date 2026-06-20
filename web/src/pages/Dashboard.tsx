@@ -6,6 +6,7 @@ import FleetCard from './sections/FleetCard'
 import InventoryCard from './sections/InventoryCard'
 import ServerStatusCard from './sections/ServerStatusCard'
 import OrgCard from './sections/OrgCard'
+import TradeCard from './sections/TradeCard'
 
 export default function Dashboard() {
   const { state, isDemo, logout } = useSession()
@@ -47,6 +48,10 @@ export default function Dashboard() {
             Your personal nook in the Nexus.{' '}
             {isDemo && 'Data is stored locally in this browser.'}
           </p>
+        </div>
+
+        <div className="mb-5">
+          <TradeCard />
         </div>
 
         <div className="grid gap-5 lg:grid-cols-2">
