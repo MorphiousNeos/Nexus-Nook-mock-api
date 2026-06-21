@@ -9,6 +9,25 @@ is hosted you only change one URL per app.
 
 ## 1. Deploy the backend
 
+### Quickest path — Render Blueprint (free, ~5 min, recommended)
+
+This repo includes a [`render.yaml`](../render.yaml) Blueprint that provisions the
+API, a free PostgreSQL database, and a free Redis-compatible store, wires them
+together, generates `JWT_SECRET`, and runs the DB migration automatically.
+
+1. Create a free account at https://render.com (sign in with GitHub).
+2. Dashboard → **New +** → **Blueprint** → connect this repository.
+3. Render reads `render.yaml` and lists the resources. Click **Apply**.
+4. When the first deploy finishes, open the **nexusnook-api** service and copy its
+   URL (e.g. `https://nexusnook-api.onrender.com`).
+5. Verify: visit `<that URL>/health` — you should see `{"status":"OK",...}`.
+
+Caveats: free web services sleep when idle (first request after idle is slow), and
+Render's free Postgres expires after ~30 days (swap in a permanent free Neon
+Postgres later by setting `DATABASE_URL`). Good enough for early testing.
+
+### Manual hosting (alternative)
+
 The backend (`backend/`) is a standard Node/Express + PostgreSQL + Redis service.
 It ships with a `Dockerfile`, `docker-compose.yml`, `db/schema.sql`, and
 `migrate.js`. Pick a host:

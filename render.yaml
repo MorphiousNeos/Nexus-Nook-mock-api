@@ -1,0 +1,59 @@
+# Render Blueprint for the Nexus Nook backend.
+# It provisions the API web service, a free PostgreSQL database, and a free
+# Redis-compatible Key Value store, and wires them together automatically.
+#
+# How to use (free, ~5 min):
+#   1. Create a free account at https://render.com (sign in with GitHub).
+#   2. Dashboard -> New + -> "Blueprint".
+#   3. Connect this repository. Render detects this render.yaml and shows the
+#      resources it will create. Click "Apply".
+#   4. Wait for the first deploy. Render creates the DB + Redis, runs the
+#      migration (preDeployCommand), and starts the API.
+#   5. Open the "nexusnook-api" service and copy its URL
+#      (e.g. https://nexusnook-api.onrender.com). Send that URL to wire the
+#      web/native clients to it for real sign-in.
+#
+# Notes:
+#   - Free web services sleep after inactivity; the first request after idle
+#     takes ~30-60s to wake. Fine for early testing.
+#   - Render's free PostgreSQL expires after ~30 days. For a permanent free DB,
+#     create a Neon (neon.tech) Postgres instead and paste its connection string
+#     into DATABASE_URL on the service (then you can remove the database block).
+
+databases:
+  - name: nexusnook-db
+    plan: free
+    databaseName: nexusnook
+    user: nexusnook
+
+services:
+  - type: keyvalue
+    name: nexusnook-redis
+    plan: free
+    ipAllowList: [] # internal-only access
+
+  - type: web
+    name: nexusnook-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    preDeployCommand: npm run migrate
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nexusnook-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: nexusnook-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://morphiousneos.github.io
