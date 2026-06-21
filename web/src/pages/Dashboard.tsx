@@ -16,13 +16,25 @@ export default function Dashboard() {
     <div>
       <header className="sticky top-0 z-10 border-b border-slate-800/70 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <img
+              src="./icon.svg"
+              alt=""
+              width={28}
+              height={28}
+              className="h-7 w-7"
+              aria-hidden
+            />
             <span className="font-display text-xl font-bold">
               <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                 Nexus Nook
               </span>
             </span>
-            {isDemo && <Badge tone="amber">Demo mode</Badge>}
+            {isDemo && (
+              <Badge tone="amber" dot>
+                Demo mode
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-slate-400 sm:inline">
@@ -40,11 +52,15 @@ export default function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-6">
-          <h1 className="font-display text-2xl font-semibold">
-            Welcome back, {profile.displayName.split(' ')[0] || 'Citizen'}.
+        <div className="mb-7">
+          <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+            Welcome back,{' '}
+            <span className="bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text text-transparent">
+              {profile.displayName.split(' ')[0] || 'Citizen'}
+            </span>
+            .
           </h1>
-          <p className="text-sm text-slate-400">
+          <p className="mt-1 text-sm text-slate-400">
             Your personal nook in the Nexus.{' '}
             {isDemo && 'Data is stored locally in this browser.'}
           </p>

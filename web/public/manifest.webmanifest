@@ -1,0 +1,19 @@
+{
+  "name": "Nexus Nook",
+  "short_name": "Nexus Nook",
+  "description": "An unofficial, fan-made Star Citizen companion. Track your fleet, inventory, trade routes, and server status.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0b1120",
+  "background_color": "#020617",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

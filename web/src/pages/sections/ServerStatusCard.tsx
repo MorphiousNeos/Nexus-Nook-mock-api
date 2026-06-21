@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSession } from '../../SessionContext'
-import { Badge, Button, Card, EmptyState } from '../../components/ui'
+import { Badge, Button, Card, EmptyState, Skeleton } from '../../components/ui'
 import type { ServerStatus, ServerStatusLevel } from '../../services/store'
 
 const TONE: Record<ServerStatusLevel, 'green' | 'amber' | 'slate' | 'red'> = {
@@ -48,17 +48,27 @@ export default function ServerStatusCard() {
         </Button>
       </div>
 
-      {error && <EmptyState>{error}</EmptyState>}
+      {error && <EmptyState icon="⚠️">{error}</EmptyState>}
 
-      {!error && (
+      {!error && loading && servers.length === 0 && (
+        <div className="space-y-2">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-11 w-full" />
+          ))}
+        </div>
+      )}
+
+      {!error && (servers.length > 0 || !loading) && (
         <ul className="space-y-2">
           {servers.map((s) => (
             <li
               key={s.region}
-              className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2"
+              className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2 transition hover:border-slate-700"
             >
               <div className="flex items-center gap-3">
-                <Badge tone={TONE[s.status]}>{LABEL[s.status]}</Badge>
+                <Badge tone={TONE[s.status]} dot>
+                  {LABEL[s.status]}
+                </Badge>
                 <span className="text-sm font-medium text-slate-100">{s.region}</span>
               </div>
               <div className="flex items-center gap-4 text-xs text-slate-400">
