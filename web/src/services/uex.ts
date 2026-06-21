@@ -83,6 +83,68 @@ function toStr(value: unknown): string | undefined {
   return undefined
 }
 
+export type TerminalPrice = {
+  terminalName: string
+  system?: string
+  priceBuy?: number
+  priceSell?: number
+}
+
+/**
+ * Fetch and normalize the per-terminal prices for a single commodity. Field
+ * names on the live API are not fully confirmed, so every access is optional
+ * and tolerant of renames; a row with neither a terminal name nor any price is
+ * dropped rather than rendered blank.
+ */
+export async function getCommodityPrices(
+  idCommodity: number | string,
+): Promise<TerminalPrice[]> {
+  const body = await uexGet<unknown>(
+    `/commodities_prices?id_commodity=${encodeURIComponent(String(idCommodity))}`,
+  )
+  const rows = unwrap(body)
+
+  const out: TerminalPrice[] = []
+  for (const raw of rows) {
+    if (!raw || typeof raw !== 'object') continue
+    const r = raw as Record<string, unknown>
+
+    const idTerminal = r.id_terminal ?? r.terminal_id
+    const terminalName =
+      toStr(r.terminal_name) ??
+      toStr(r.terminal) ??
+      toStr(r.name_terminal) ??
+      (idTerminal !== undefined && idTerminal !== null
+        ? `Terminal #${toStr(idTerminal)}`
+        : undefined)
+
+    const system =
+      toStr(r.star_system_name) ??
+      toStr(r.system_name) ??
+      toStr(r.star_system) ??
+      toStr(r.planet_name) ??
+      toStr(r.planet) ??
+      toStr(r.space_station_name) ??
+      toStr(r.orbit_name)
+
+    const priceBuy = toNumber(r.price_buy ?? r.priceBuy)
+    const priceSell = toNumber(r.price_sell ?? r.priceSell)
+
+    // Drop rows with no terminal name AND no prices.
+    if (!terminalName && priceBuy === undefined && priceSell === undefined) {
+      continue
+    }
+
+    out.push({
+      terminalName: terminalName ?? 'Unknown terminal',
+      system,
+      priceBuy,
+      priceSell,
+    })
+  }
+  return out
+}
+
 /**
  * Fetch and normalize the commodity list. Field accesses are tolerant of the
  * live API's naming; a commodity with no usable name is dropped rather than

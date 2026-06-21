@@ -1,6 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button, Card, EmptyState, Field } from '../../components/ui'
-import { getCommodities, UexError, type Commodity } from '../../services/uex'
+import {
+  getCommodities,
+  getCommodityPrices,
+  UexError,
+  type Commodity,
+  type TerminalPrice,
+} from '../../services/uex'
+import CommodityRoute from './CommodityRoute'
 
 const ATTRIBUTION =
   'Trade data courtesy of UEX Corp (uexcorp.space) — community-run, not affiliated with CIG or Nexus Nook.'
@@ -29,6 +36,51 @@ export default function TradeCard() {
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState('')
   const [sort, setSort] = useState<SortKey>('margin')
+
+  // Per-commodity "best route" detail, fetched on demand and cached by id.
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [priceCache, setPriceCache] = useState<Record<string, TerminalPrice[]>>({})
+  const [routeLoading, setRouteLoading] = useState(false)
+  const [routeError, setRouteError] = useState<string | null>(null)
+
+  const selectCommodity = useCallback(
+    async (c: Commodity) => {
+      if (c.id === undefined || c.id === null) return
+      const key = String(c.id)
+
+      // Toggle off if already selected.
+      if (selectedId === key) {
+        setSelectedId(null)
+        return
+      }
+
+      setSelectedId(key)
+      setRouteError(null)
+
+      // Cached — no refetch.
+      if (priceCache[key]) {
+        setRouteLoading(false)
+        return
+      }
+
+      setRouteLoading(true)
+      try {
+        const prices = await getCommodityPrices(c.id)
+        setPriceCache((prev) => ({ ...prev, [key]: prices }))
+      } catch (err) {
+        const msg =
+          err instanceof UexError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : 'Something went wrong loading this route.'
+        setRouteError(msg)
+      } finally {
+        setRouteLoading(false)
+      }
+    },
+    [selectedId, priceCache],
+  )
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -147,35 +199,73 @@ export default function TradeCard() {
                 <tbody>
                   {visible.map((c, i) => {
                     const m = margin(c)
+                    const expandable = c.id !== undefined && c.id !== null
+                    const key = expandable ? String(c.id) : undefined
+                    const isSelected = key !== undefined && key === selectedId
                     return (
-                      <tr
-                        key={(c.id ?? c.code ?? c.name) + ':' + i}
-                        className="border-t border-slate-800/70"
-                      >
-                        <td className="px-3 py-2 text-slate-100">
-                          {c.name}
-                          {c.code && (
-                            <span className="ml-1 text-xs text-slate-500">{c.code}</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-slate-300">
-                          {fmtPrice(c.priceBuy)}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-slate-300">
-                          {fmtPrice(c.priceSell)}
-                        </td>
-                        <td
-                          className={`px-3 py-2 text-right tabular-nums ${
-                            m === undefined
-                              ? 'text-slate-500'
-                              : m >= 0
-                                ? 'text-emerald-300'
-                                : 'text-red-300'
-                          }`}
+                      <React.Fragment key={(c.id ?? c.code ?? c.name) + ':' + i}>
+                        <tr
+                          className={`border-t border-slate-800/70 ${
+                            expandable
+                              ? 'cursor-pointer hover:bg-slate-800/40 focus:bg-slate-800/40 focus:outline-none'
+                              : ''
+                          } ${isSelected ? 'bg-slate-800/50' : ''}`}
+                          {...(expandable
+                            ? {
+                                role: 'button',
+                                tabIndex: 0,
+                                'aria-expanded': isSelected,
+                                onClick: () => void selectCommodity(c),
+                                onKeyDown: (e: React.KeyboardEvent) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault()
+                                    void selectCommodity(c)
+                                  }
+                                },
+                              }
+                            : {})}
                         >
-                          {m === undefined ? '—' : fmtPrice(m)}
-                        </td>
-                      </tr>
+                          <td className="px-3 py-2 text-slate-100">
+                            {expandable && (
+                              <span className="mr-1 inline-block text-xs text-slate-500">
+                                {isSelected ? '▾' : '▸'}
+                              </span>
+                            )}
+                            {c.name}
+                            {c.code && (
+                              <span className="ml-1 text-xs text-slate-500">{c.code}</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums text-slate-300">
+                            {fmtPrice(c.priceBuy)}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums text-slate-300">
+                            {fmtPrice(c.priceSell)}
+                          </td>
+                          <td
+                            className={`px-3 py-2 text-right tabular-nums ${
+                              m === undefined
+                                ? 'text-slate-500'
+                                : m >= 0
+                                  ? 'text-emerald-300'
+                                  : 'text-red-300'
+                            }`}
+                          >
+                            {m === undefined ? '—' : fmtPrice(m)}
+                          </td>
+                        </tr>
+                        {isSelected && (
+                          <tr className="border-t border-slate-800/70 bg-slate-950/30">
+                            <td colSpan={4} className="p-0">
+                              <CommodityRoute
+                                loading={routeLoading}
+                                error={routeError}
+                                rows={key !== undefined ? priceCache[key] : undefined}
+                              />
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     )
                   })}
                 </tbody>
