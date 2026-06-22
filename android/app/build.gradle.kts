@@ -28,8 +28,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // TODO: set to your deployed HTTPS backend before shipping a release build.
-            buildConfigField("String", "BASE_URL", "\"https://your-backend.example.com\"")
+            buildConfigField("String", "BASE_URL", "\"https://nexusnook-api.onrender.com\"")
         }
     }
 
