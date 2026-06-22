@@ -7,8 +7,8 @@
 #   2. Dashboard -> New + -> "Blueprint".
 #   3. Connect this repository. Render detects this render.yaml and shows the
 #      resources it will create. Click "Apply".
-#   4. Wait for the first deploy. Render creates the DB + Redis, runs the
-#      migration (preDeployCommand), and starts the API.
+#   4. Wait for the first deploy. Render creates the DB + Redis; the service
+#      runs the migration at startup, then starts the API.
 #   5. Open the "nexusnook-api" service and copy its URL
 #      (e.g. https://nexusnook-api.onrender.com). Send that URL to wire the
 #      web/native clients to it for real sign-in.
@@ -38,8 +38,9 @@ services:
     plan: free
     rootDir: backend
     buildCommand: npm install
-    preDeployCommand: npm run migrate
-    startCommand: npm start
+    # Free tier doesn't allow a pre-deploy command, so run the (idempotent)
+    # migration at startup before launching the server.
+    startCommand: npm run migrate && npm start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
