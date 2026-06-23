@@ -14,7 +14,7 @@ export default function Landing() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (state) navigate('/dashboard', { replace: true })
+    if (state) navigate('/overview', { replace: true })
   }, [state, navigate])
 
   async function handleSubmit(e: FormEvent) {
@@ -27,7 +27,7 @@ export default function Landing() {
     setBusy(true)
     try {
       await enter({ displayName, email, rsiHandle })
-      navigate('/dashboard', { replace: true })
+      navigate('/overview', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not enter. Try again.')
     } finally {
