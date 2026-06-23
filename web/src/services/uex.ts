@@ -145,6 +145,58 @@ export async function getCommodityPrices(
   return out
 }
 
+export type Vehicle = {
+  id?: number | string
+  name: string
+  manufacturer?: string
+  cargo?: number
+  crew?: number
+}
+
+/**
+ * Fetch and normalize the ship/vehicle catalog from `/vehicles`. Live field
+ * names are not fully confirmed, so every access is tolerant of renames and
+ * nested shapes; an entry with no usable name is dropped rather than rendered
+ * blank. The catalog is a few hundred rows — fine to filter client-side.
+ */
+export async function getVehicles(): Promise<Vehicle[]> {
+  const body = await uexGet<unknown>('/vehicles')
+  const rows = unwrap(body)
+
+  const out: Vehicle[] = []
+  for (const raw of rows) {
+    if (!raw || typeof raw !== 'object') continue
+    const r = raw as Record<string, unknown>
+
+    const name = toStr(r.name_full) ?? toStr(r.name) ?? toStr(r.vehicle_name)
+    if (!name) continue
+
+    // Manufacturer may be a flat field or nested under a company object.
+    const company =
+      r.company && typeof r.company === 'object'
+        ? (r.company as Record<string, unknown>)
+        : undefined
+    const manufacturer =
+      toStr(r.company_name) ??
+      toStr(r.manufacturer) ??
+      toStr(r.manufacturer_name) ??
+      (company ? toStr(company.name) ?? toStr(company.name_full) : undefined)
+
+    const cargo = toNumber(r.scu) ?? toNumber(r.cargo) ?? toNumber(r.cargo_capacity)
+    const crew =
+      toNumber(r.crew) ??
+      toNumber(r.crew_max) ??
+      toNumber(r.crew_min) ??
+      toNumber(r.crew_size)
+
+    const id =
+      typeof r.id === 'number' || typeof r.id === 'string' ? r.id : undefined
+
+    out.push({ id, name, manufacturer, cargo, crew })
+  }
+  return out
+}
+
 /**
  * Fetch and normalize the commodity list. Field accesses are tolerant of the
  * live API's naming; a commodity with no usable name is dropped rather than
