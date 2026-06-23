@@ -197,6 +197,56 @@ export async function getVehicles(): Promise<Vehicle[]> {
   return out
 }
 
+export type Item = {
+  id?: number | string
+  name: string
+  manufacturer?: string
+  category?: string
+  kind?: string
+}
+
+/**
+ * Fetch and normalize the item/gear catalog from `/items`. Field names on the
+ * live API are not fully confirmed, so every access is tolerant of renames and
+ * nested company shapes; an entry with no usable name is dropped rather than
+ * rendered blank. The catalog can be a few thousand rows — fine to filter
+ * client-side once it is loaded.
+ */
+export async function getItems(): Promise<Item[]> {
+  const body = await uexGet<unknown>('/items')
+  const rows = unwrap(body)
+
+  const out: Item[] = []
+  for (const raw of rows) {
+    if (!raw || typeof raw !== 'object') continue
+    const r = raw as Record<string, unknown>
+
+    const name = toStr(r.name_full) ?? toStr(r.name) ?? toStr(r.item_name)
+    if (!name) continue
+
+    // Manufacturer may be flat or nested under a company object.
+    const company =
+      r.company && typeof r.company === 'object'
+        ? (r.company as Record<string, unknown>)
+        : undefined
+    const manufacturer =
+      toStr(r.company_name) ??
+      toStr(r.manufacturer) ??
+      toStr(r.manufacturer_name) ??
+      (company ? toStr(company.name) ?? toStr(company.name_full) : undefined)
+
+    const category =
+      toStr(r.category) ?? toStr(r.section_name) ?? toStr(r.group_name)
+    const kind = toStr(r.kind) ?? toStr(r.type) ?? toStr(r.section_name)
+
+    const id =
+      typeof r.id === 'number' || typeof r.id === 'string' ? r.id : undefined
+
+    out.push({ id, name, manufacturer, category, kind })
+  }
+  return out
+}
+
 /**
  * Fetch and normalize the commodity list. Field accesses are tolerant of the
  * live API's naming; a commodity with no usable name is dropped rather than

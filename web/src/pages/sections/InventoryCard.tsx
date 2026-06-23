@@ -1,16 +1,136 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useSession } from '../../SessionContext'
 import { Button, Card, EmptyState, Field } from '../../components/ui'
+import { getItems, UexError, type Item } from '../../services/uex'
+
+/** One-line meta string for a catalog item (category/kind), used in list rows. */
+function describeItem(item: Item): string {
+  const parts: string[] = []
+  if (item.category) parts.push(item.category)
+  if (item.kind && item.kind !== item.category) parts.push(item.kind)
+  return parts.join(' · ')
+}
+
+/**
+ * Fold catalog category + free-text notes into the single `notes` field on
+ * InventoryItem. We deliberately do NOT change the InventoryItem type — the
+ * category is only context, so a `[Category] notes…` prefix is the most
+ * pragmatic place to surface it.
+ */
+function composeNotes(category: string | undefined, freeText: string): string | undefined {
+  const tag = category ? `[${category}]` : ''
+  const text = freeText.trim()
+  const combined = [tag, text].filter(Boolean).join(' ')
+  return combined || undefined
+}
 
 export default function InventoryCard() {
   const { state, addItem, removeItem } = useSession()
   const inventory = state!.inventory
+
+  // Picker open/closed + custom (manual) fallback toggle.
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [customOpen, setCustomOpen] = useState(false)
+
+  // Catalog cache — fetched once, kept in component state so reopening the
+  // picker does not refetch.
+  const [catalog, setCatalog] = useState<Item[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  // Search input + debounced query used for filtering.
+  const [search, setSearch] = useState('')
+  const [query, setQuery] = useState('')
+
+  // Selection / per-item form for quantity + notes.
+  const [selected, setSelected] = useState<Item | null>(null)
+  const [pickQty, setPickQty] = useState('1')
+  const [pickNotes, setPickNotes] = useState('')
+  const [pickBusy, setPickBusy] = useState(false)
+
+  // Manual ("Add custom") fields.
   const [name, setName] = useState('')
   const [qty, setQty] = useState('1')
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
 
-  async function submit(e: FormEvent) {
+  const fetchedRef = useRef(false)
+
+  // Load the catalog the first time the picker opens (cache afterwards).
+  useEffect(() => {
+    if (!pickerOpen || fetchedRef.current) return
+    fetchedRef.current = true
+    let active = true
+    setLoading(true)
+    setLoadError(null)
+    getItems()
+      .then((items) => active && setCatalog(items))
+      .catch((err) => {
+        if (!active) return
+        // Allow a retry next open and surface the friendly message.
+        fetchedRef.current = false
+        setLoadError(
+          err instanceof UexError
+            ? err.message
+            : 'Could not load the item catalog. You can still add an item manually.',
+        )
+      })
+      .finally(() => active && setLoading(false))
+    return () => {
+      active = false
+    }
+  }, [pickerOpen])
+
+  // Debounce the search input — the catalog can have thousands of rows.
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(search), 150)
+    return () => clearTimeout(t)
+  }, [search])
+
+  const filtered = useMemo(() => {
+    if (!catalog) return []
+    const q = query.trim().toLowerCase()
+    if (!q) return catalog
+    return catalog.filter(
+      (item) =>
+        item.name.toLowerCase().includes(q) ||
+        (item.manufacturer ?? '').toLowerCase().includes(q) ||
+        (item.category ?? '').toLowerCase().includes(q) ||
+        (item.kind ?? '').toLowerCase().includes(q),
+    )
+  }, [catalog, query])
+
+  const visible = useMemo(() => filtered.slice(0, 100), [filtered])
+
+  function selectItem(item: Item) {
+    setSelected(item)
+    setPickQty('1')
+    setPickNotes('')
+  }
+
+  function cancelSelection() {
+    setSelected(null)
+    setPickQty('1')
+    setPickNotes('')
+  }
+
+  async function confirmSelection(e: FormEvent) {
+    e.preventDefault()
+    if (!selected) return
+    setPickBusy(true)
+    try {
+      await addItem({
+        name: selected.name,
+        qty: Math.max(1, parseInt(pickQty, 10) || 1),
+        notes: composeNotes(selected.category, pickNotes),
+      })
+      cancelSelection()
+    } finally {
+      setPickBusy(false)
+    }
+  }
+
+  async function submitCustom(e: FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
     setBusy(true)
@@ -23,35 +143,191 @@ export default function InventoryCard() {
       setName('')
       setQty('1')
       setNotes('')
+      setCustomOpen(false)
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <Card title="Inventory" icon="📦">
+    <Card
+      title="Inventory"
+      icon="📦"
+      action={
+        <Button
+          variant={pickerOpen ? 'ghost' : 'primary'}
+          onClick={() => setPickerOpen((o) => !o)}
+        >
+          {pickerOpen ? 'Close' : 'Add item'}
+        </Button>
+      }
+    >
       <p className="mb-4 text-xs text-slate-400">
         A personal manifest of components, cargo, and gear you want to keep track of.
       </p>
 
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
-        <Field label="Item name" placeholder="Quantum drive" value={name} onChange={(e) => setName(e.target.value)} />
-        <Field label="Quantity" type="number" min={1} value={qty} onChange={(e) => setQty(e.target.value)} />
-        <Field
-          label="Notes (optional)"
-          placeholder="Stored at Port Olisar"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-        <div className="flex items-end">
-          <Button type="submit" disabled={busy || !name.trim()} className="w-full">
-            {busy ? 'Adding…' : 'Add item'}
-          </Button>
-        </div>
-      </form>
+      {pickerOpen && (
+        <div className="mb-5 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+          <Field
+            label="Search the Star Citizen item catalog"
+            placeholder="Helmet, medpen, FS-9, Behring…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            autoFocus
+          />
 
-      <ul className="mt-5 space-y-2">
-        {inventory.length === 0 && <EmptyState>Your manifest is empty.</EmptyState>}
+          <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40">
+            {loading && (
+              <p className="px-3 py-6 text-center text-sm text-slate-500">
+                Loading item catalog…
+              </p>
+            )}
+
+            {!loading && loadError && (
+              <p className="px-3 py-4 text-sm text-amber-300">{loadError}</p>
+            )}
+
+            {!loading && !loadError && catalog && filtered.length === 0 && (
+              <p className="px-3 py-6 text-center text-sm text-slate-500">
+                {query ? `No items match “${query}”.` : 'Catalog is empty.'}
+              </p>
+            )}
+
+            {!loading && !loadError && visible.length > 0 && (
+              <ul className="divide-y divide-slate-800/70">
+                {visible.map((item) => {
+                  const key = String(item.id ?? item.name)
+                  const meta = describeItem(item)
+                  const isSelected =
+                    selected !== null && String(selected.id ?? selected.name) === key
+                  return (
+                    <li
+                      key={key}
+                      className="flex items-center justify-between gap-3 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-slate-100">{item.name}</p>
+                        <p className="truncate text-xs text-slate-400">
+                          {[item.manufacturer, meta].filter(Boolean).join(' · ') ||
+                            'Unspecified'}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        className="shrink-0"
+                        disabled={pickBusy}
+                        onClick={() => selectItem(item)}
+                      >
+                        {isSelected ? 'Selected' : 'Select'}
+                      </Button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+
+          {!loading && !loadError && catalog && filtered.length > 0 && (
+            <p className="mt-2 text-[11px] text-slate-500">
+              Showing {visible.length} of {filtered.length}
+              {filtered.length !== catalog.length ? ` (filtered from ${catalog.length})` : ''}
+              .
+            </p>
+          )}
+
+          {selected && (
+            <form
+              onSubmit={confirmSelection}
+              className="mt-3 grid gap-3 rounded-lg border border-purple-900/50 bg-purple-950/20 p-3 sm:grid-cols-[1fr_auto_auto]"
+            >
+              <div className="min-w-0 sm:col-span-3">
+                <p className="text-xs uppercase tracking-wider text-purple-300">
+                  Adding
+                </p>
+                <p className="truncate font-medium text-slate-100">{selected.name}</p>
+                <p className="truncate text-xs text-slate-400">
+                  {[selected.manufacturer, describeItem(selected)]
+                    .filter(Boolean)
+                    .join(' · ') || 'Unspecified'}
+                </p>
+              </div>
+              <Field
+                label="Quantity"
+                type="number"
+                min={1}
+                value={pickQty}
+                onChange={(e) => setPickQty(e.target.value)}
+              />
+              <Field
+                label="Notes (optional)"
+                placeholder="Stored at Port Olisar"
+                value={pickNotes}
+                onChange={(e) => setPickNotes(e.target.value)}
+              />
+              <div className="flex items-end gap-2">
+                <Button type="submit" disabled={pickBusy}>
+                  {pickBusy ? 'Adding…' : 'Add to manifest'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={pickBusy}
+                  onClick={cancelSelection}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] text-slate-500">
+              Item data from UEX Corp (uexcorp.space) — community-run, not affiliated with
+              CIG.
+            </p>
+            <Button variant="ghost" onClick={() => setCustomOpen((o) => !o)}>
+              {customOpen ? 'Hide custom' : 'Add custom'}
+            </Button>
+          </div>
+
+          {customOpen && (
+            <form
+              onSubmit={submitCustom}
+              className="mt-3 grid gap-3 border-t border-slate-800 pt-3 sm:grid-cols-2"
+            >
+              <Field
+                label="Item name"
+                placeholder="Quantum drive"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <Field
+                label="Quantity"
+                type="number"
+                min={1}
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+              />
+              <Field
+                label="Notes (optional)"
+                placeholder="Stored at Port Olisar"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+              <div className="flex items-end">
+                <Button type="submit" disabled={busy || !name.trim()} className="w-full">
+                  {busy ? 'Adding…' : 'Add custom item'}
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
+      <ul className="space-y-2">
+        {inventory.length === 0 && (
+          <EmptyState>Your manifest is empty. Use “Add item” to search the catalog.</EmptyState>
+        )}
         {inventory.map((item) => (
           <li
             key={item.id}
