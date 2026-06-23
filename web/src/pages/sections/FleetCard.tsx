@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useSession } from '../../SessionContext'
 import { Button, Card, EmptyState, Field } from '../../components/ui'
 import { getVehicles, UexError, type Vehicle } from '../../services/uex'
+import type { WikiVehicleDetail } from '../../services/scwiki'
+import ShipDetail from './ShipDetail'
 
 /** How a ship was acquired. Folded into the Ship `notes` field — no type change. */
 const ACQUIRED_OPTIONS = [
@@ -45,6 +47,14 @@ export default function FleetCard() {
   const [type, setType] = useState('')
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // Detail-view state: which ship is expanded + a per-ship-id cache of the
+  // wiki lookup result so reopening is instant. `null` cached means "we
+  // already looked and the wiki had nothing for it".
+  const [expandedShipId, setExpandedShipId] = useState<string | null>(null)
+  const [detailCache, setDetailCache] = useState<
+    Record<string, WikiVehicleDetail | null>
+  >({})
 
   const fetchedRef = useRef(false)
 
@@ -270,23 +280,76 @@ export default function FleetCard() {
         {fleet.length === 0 && (
           <EmptyState>No ships yet. Use “Add ship” to search the catalog.</EmptyState>
         )}
-        {fleet.map((ship) => (
-          <li
-            key={ship.id}
-            className="flex items-start justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2"
-          >
-            <div>
-              <p className="font-medium text-slate-100">{ship.name}</p>
-              <p className="text-xs text-slate-400">
-                {[ship.manufacturer, ship.type].filter(Boolean).join(' · ') || 'Unspecified'}
-              </p>
-              {ship.notes && <p className="mt-1 text-xs text-slate-500">{ship.notes}</p>}
-            </div>
-            <Button variant="danger" onClick={() => removeShip(ship.id)} className="shrink-0">
-              Remove
-            </Button>
-          </li>
-        ))}
+        {fleet.map((ship) => {
+          const expanded = expandedShipId === ship.id
+          const toggle = () =>
+            setExpandedShipId((cur) => (cur === ship.id ? null : ship.id))
+          const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              toggle()
+            }
+          }
+          return (
+            <li
+              key={ship.id}
+              className="rounded-lg border border-slate-800 bg-slate-950/50"
+            >
+              <div className="flex items-start justify-between gap-3 px-3 py-2">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={expanded}
+                  aria-controls={`ship-detail-${ship.id}`}
+                  onClick={toggle}
+                  onKeyDown={onKey}
+                  className="min-w-0 flex-1 cursor-pointer rounded outline-none transition focus-visible:ring-2 focus-visible:ring-purple-500"
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      aria-hidden
+                      className={`text-xs text-slate-500 transition-transform ${
+                        expanded ? 'rotate-90' : ''
+                      }`}
+                    >
+                      ▶
+                    </span>
+                    <p className="truncate font-medium text-slate-100">{ship.name}</p>
+                  </div>
+                  <p className="ml-5 truncate text-xs text-slate-400">
+                    {[ship.manufacturer, ship.type].filter(Boolean).join(' · ') ||
+                      'Unspecified'}
+                  </p>
+                  {ship.notes && (
+                    <p className="ml-5 mt-1 truncate text-xs text-slate-500">
+                      {ship.notes}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="danger"
+                  onClick={() => removeShip(ship.id)}
+                  className="shrink-0"
+                >
+                  Remove
+                </Button>
+              </div>
+              {expanded && (
+                <div id={`ship-detail-${ship.id}`} className="px-3 pb-3">
+                  <ShipDetail
+                    ship={{ name: ship.name, manufacturer: ship.manufacturer }}
+                    cached={
+                      ship.id in detailCache ? detailCache[ship.id] : undefined
+                    }
+                    onResolved={(detail) =>
+                      setDetailCache((prev) => ({ ...prev, [ship.id]: detail }))
+                    }
+                  />
+                </div>
+              )}
+            </li>
+          )
+        })}
       </ul>
     </Card>
   )
