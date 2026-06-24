@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useSession } from '../../SessionContext'
 import { Button, Card, EmptyState, Field } from '../../components/ui'
-import { getItems, UexError, type Item } from '../../services/uex'
+import {
+  getCategories,
+  getItemsByCategory,
+  UexError,
+  type Item,
+  type ItemCategory,
+} from '../../services/uex'
 
 /** One-line meta string for a catalog item (category/kind), used in list rows. */
 function describeItem(item: Item): string {
@@ -32,13 +38,18 @@ export default function InventoryCard() {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [customOpen, setCustomOpen] = useState(false)
 
-  // Catalog cache — fetched once, kept in component state so reopening the
-  // picker does not refetch.
-  const [catalog, setCatalog] = useState<Item[] | null>(null)
+  // Categories — UEX requires choosing a category before listing items.
+  const [categories, setCategories] = useState<ItemCategory[] | null>(null)
+  const [catLoading, setCatLoading] = useState(false)
+  const [catError, setCatError] = useState<string | null>(null)
+  const [selectedCat, setSelectedCat] = useState('')
+
+  // Per-category item cache + load state for the currently selected category.
+  const [itemsByCat, setItemsByCat] = useState<Record<string, Item[]>>({})
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
-  // Search input + debounced query used for filtering.
+  // Search input + debounced query used for filtering within a category.
   const [search, setSearch] = useState('')
   const [query, setQuery] = useState('')
 
@@ -54,38 +65,61 @@ export default function InventoryCard() {
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const fetchedRef = useRef(false)
+  const catsFetchedRef = useRef(false)
 
-  // Load the catalog the first time the picker opens (cache afterwards).
+  // Load the category list the first time the picker opens (cache afterwards).
   useEffect(() => {
-    if (!pickerOpen || fetchedRef.current) return
-    fetchedRef.current = true
+    if (!pickerOpen || catsFetchedRef.current) return
+    catsFetchedRef.current = true
+    let active = true
+    setCatLoading(true)
+    setCatError(null)
+    getCategories()
+      .then((cats) => active && setCategories(cats))
+      .catch((err) => {
+        if (!active) return
+        catsFetchedRef.current = false
+        setCatError(
+          err instanceof UexError
+            ? err.message
+            : 'Could not load item categories. You can still add an item manually.',
+        )
+      })
+      .finally(() => active && setCatLoading(false))
+    return () => {
+      active = false
+    }
+  }, [pickerOpen])
+
+  // Load items for the selected category (cache per category).
+  useEffect(() => {
+    if (!selectedCat || itemsByCat[selectedCat]) return
     let active = true
     setLoading(true)
     setLoadError(null)
-    getItems()
-      .then((items) => active && setCatalog(items))
+    getItemsByCategory(selectedCat)
+      .then((items) => active && setItemsByCat((prev) => ({ ...prev, [selectedCat]: items })))
       .catch((err) => {
         if (!active) return
-        // Allow a retry next open and surface the friendly message.
-        fetchedRef.current = false
         setLoadError(
           err instanceof UexError
             ? err.message
-            : 'Could not load the item catalog. You can still add an item manually.',
+            : 'Could not load items for this category.',
         )
       })
       .finally(() => active && setLoading(false))
     return () => {
       active = false
     }
-  }, [pickerOpen])
+  }, [selectedCat, itemsByCat])
 
-  // Debounce the search input — the catalog can have thousands of rows.
+  // Debounce the search input.
   useEffect(() => {
     const t = setTimeout(() => setQuery(search), 150)
     return () => clearTimeout(t)
   }, [search])
+
+  const catalog = selectedCat ? itemsByCat[selectedCat] ?? null : null
 
   const filtered = useMemo(() => {
     if (!catalog) return []
@@ -168,66 +202,104 @@ export default function InventoryCard() {
 
       {pickerOpen && (
         <div className="mb-5 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-          <Field
-            label="Search the Star Citizen item catalog"
-            placeholder="Helmet, medpen, FS-9, Behring…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            autoFocus
-          />
+          {/* Category picker — UEX lists items per category. */}
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+              Category
+            </span>
+            <select
+              value={selectedCat}
+              onChange={(e) => {
+                setSelectedCat(e.target.value)
+                cancelSelection()
+                setSearch('')
+              }}
+              disabled={catLoading || !!catError || !categories}
+              className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 disabled:opacity-60"
+            >
+              <option value="">
+                {catLoading
+                  ? 'Loading categories…'
+                  : categories
+                    ? 'Choose a category…'
+                    : 'Categories unavailable'}
+              </option>
+              {categories?.map((c) => (
+                <option key={String(c.id)} value={String(c.id)}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
-          <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40">
-            {loading && (
-              <p className="px-3 py-6 text-center text-sm text-slate-500">
-                Loading item catalog…
-              </p>
-            )}
+          {catError && <p className="mt-2 text-sm text-amber-300">{catError}</p>}
 
-            {!loading && loadError && (
-              <p className="px-3 py-4 text-sm text-amber-300">{loadError}</p>
-            )}
+          {selectedCat && (
+            <div className="mt-3">
+              <Field
+                label="Search this category"
+                placeholder="Helmet, medpen, FS-9, Behring…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                autoFocus
+              />
+            </div>
+          )}
 
-            {!loading && !loadError && catalog && filtered.length === 0 && (
-              <p className="px-3 py-6 text-center text-sm text-slate-500">
-                {query ? `No items match “${query}”.` : 'Catalog is empty.'}
-              </p>
-            )}
+          {selectedCat && (
+            <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40">
+              {loading && (
+                <p className="px-3 py-6 text-center text-sm text-slate-500">
+                  Loading items…
+                </p>
+              )}
 
-            {!loading && !loadError && visible.length > 0 && (
-              <ul className="divide-y divide-slate-800/70">
-                {visible.map((item) => {
-                  const key = String(item.id ?? item.name)
-                  const meta = describeItem(item)
-                  const isSelected =
-                    selected !== null && String(selected.id ?? selected.name) === key
-                  return (
-                    <li
-                      key={key}
-                      className="flex items-center justify-between gap-3 px-3 py-2"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-slate-100">{item.name}</p>
-                        <p className="truncate text-xs text-slate-400">
-                          {[item.manufacturer, meta].filter(Boolean).join(' · ') ||
-                            'Unspecified'}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        className="shrink-0"
-                        disabled={pickBusy}
-                        onClick={() => selectItem(item)}
+              {!loading && loadError && (
+                <p className="px-3 py-4 text-sm text-amber-300">{loadError}</p>
+              )}
+
+              {!loading && !loadError && catalog && filtered.length === 0 && (
+                <p className="px-3 py-6 text-center text-sm text-slate-500">
+                  {query ? `No items match “${query}”.` : 'No items in this category.'}
+                </p>
+              )}
+
+              {!loading && !loadError && visible.length > 0 && (
+                <ul className="divide-y divide-slate-800/70">
+                  {visible.map((item) => {
+                    const key = String(item.id ?? item.name)
+                    const meta = describeItem(item)
+                    const isSelected =
+                      selected !== null && String(selected.id ?? selected.name) === key
+                    return (
+                      <li
+                        key={key}
+                        className="flex items-center justify-between gap-3 px-3 py-2"
                       >
-                        {isSelected ? 'Selected' : 'Select'}
-                      </Button>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-slate-100">{item.name}</p>
+                          <p className="truncate text-xs text-slate-400">
+                            {[item.manufacturer, meta].filter(Boolean).join(' · ') ||
+                              'Unspecified'}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          className="shrink-0"
+                          disabled={pickBusy}
+                          onClick={() => selectItem(item)}
+                        >
+                          {isSelected ? 'Selected' : 'Select'}
+                        </Button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
 
-          {!loading && !loadError && catalog && filtered.length > 0 && (
+          {selectedCat && !loading && !loadError && catalog && filtered.length > 0 && (
             <p className="mt-2 text-[11px] text-slate-500">
               Showing {visible.length} of {filtered.length}
               {filtered.length !== catalog.length ? ` (filtered from ${catalog.length})` : ''}

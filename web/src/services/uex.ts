@@ -205,44 +205,75 @@ export type Item = {
   kind?: string
 }
 
+/** Map one raw UEX item row onto our normalized Item, or null if unusable. */
+function mapItem(raw: unknown): Item | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+
+  const name = toStr(r.name_full) ?? toStr(r.name) ?? toStr(r.item_name)
+  if (!name) return null
+
+  // Manufacturer may be flat or nested under a company object.
+  const company =
+    r.company && typeof r.company === 'object'
+      ? (r.company as Record<string, unknown>)
+      : undefined
+  const manufacturer =
+    toStr(r.company_name) ??
+    toStr(r.manufacturer) ??
+    toStr(r.manufacturer_name) ??
+    (company ? toStr(company.name) ?? toStr(company.name_full) : undefined)
+
+  const category =
+    toStr(r.category) ?? toStr(r.section_name) ?? toStr(r.group_name)
+  const kind = toStr(r.kind) ?? toStr(r.type) ?? toStr(r.section_name)
+
+  const id =
+    typeof r.id === 'number' || typeof r.id === 'string' ? r.id : undefined
+
+  return { id, name, manufacturer, category, kind }
+}
+
+export type ItemCategory = {
+  id: number | string
+  name: string
+  section?: string
+}
+
 /**
- * Fetch and normalize the item/gear catalog from `/items`. Field names on the
- * live API are not fully confirmed, so every access is tolerant of renames and
- * nested company shapes; an entry with no usable name is dropped rather than
- * rendered blank. The catalog can be a few thousand rows — fine to filter
- * client-side once it is loaded.
+ * Fetch the item categories (UEX groups items by category, and `/items`
+ * requires an `id_category`). Defensive about field names.
  */
-export async function getItems(): Promise<Item[]> {
-  const body = await uexGet<unknown>('/items')
+export async function getCategories(): Promise<ItemCategory[]> {
+  const body = await uexGet<unknown>('/categories')
   const rows = unwrap(body)
 
-  const out: Item[] = []
+  const out: ItemCategory[] = []
   for (const raw of rows) {
     if (!raw || typeof raw !== 'object') continue
     const r = raw as Record<string, unknown>
+    const id = r.id
+    if (typeof id !== 'number' && typeof id !== 'string') continue
+    const name =
+      toStr(r.name) ?? toStr(r.section_name) ?? toStr(r.type) ?? `Category ${id}`
+    // Keep only categories that actually hold items where the API exposes a flag.
+    out.push({ id, name, section: toStr(r.section) ?? toStr(r.type) })
+  }
+  // Stable alphabetical order for the dropdown.
+  out.sort((a, b) => a.name.localeCompare(b.name))
+  return out
+}
 
-    const name = toStr(r.name_full) ?? toStr(r.name) ?? toStr(r.item_name)
-    if (!name) continue
-
-    // Manufacturer may be flat or nested under a company object.
-    const company =
-      r.company && typeof r.company === 'object'
-        ? (r.company as Record<string, unknown>)
-        : undefined
-    const manufacturer =
-      toStr(r.company_name) ??
-      toStr(r.manufacturer) ??
-      toStr(r.manufacturer_name) ??
-      (company ? toStr(company.name) ?? toStr(company.name_full) : undefined)
-
-    const category =
-      toStr(r.category) ?? toStr(r.section_name) ?? toStr(r.group_name)
-    const kind = toStr(r.kind) ?? toStr(r.type) ?? toStr(r.section_name)
-
-    const id =
-      typeof r.id === 'number' || typeof r.id === 'string' ? r.id : undefined
-
-    out.push({ id, name, manufacturer, category, kind })
+/** Fetch the items within a single category (`/items?id_category=<id>`). */
+export async function getItemsByCategory(idCategory: number | string): Promise<Item[]> {
+  const body = await uexGet<unknown>(
+    `/items?id_category=${encodeURIComponent(String(idCategory))}`,
+  )
+  const rows = unwrap(body)
+  const out: Item[] = []
+  for (const raw of rows) {
+    const item = mapItem(raw)
+    if (item) out.push(item)
   }
   return out
 }
