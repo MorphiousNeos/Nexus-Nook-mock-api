@@ -251,6 +251,164 @@ export async function deleteListing(id: string): Promise<void> {
   await request(`/api/market/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
+// --- Org & Operations -----------------------------------------------------
+
+export interface OrgSummary {
+  id: string
+  name: string
+  tag: string
+  description: string
+  createdAt: string
+  owner: string
+  memberCount?: number
+}
+
+export interface OrgMember {
+  name: string
+  role: string
+  joinedAt: string
+}
+
+export interface OrgOp {
+  id: string
+  title: string
+  startsAt?: string
+  body: string
+  createdAt: string
+  author: string
+}
+
+export interface OrgDetail {
+  id: string
+  name: string
+  tag: string
+  description: string
+  createdAt: string
+  ownerId?: string
+  owner: string
+  members: OrgMember[]
+  ops: OrgOp[]
+}
+
+export interface OrgInput {
+  name: string
+  tag?: string
+  description?: string
+}
+
+export interface OpInput {
+  title: string
+  startsAt?: string
+  body?: string
+}
+
+function mapOrgSummary(raw: unknown): OrgSummary {
+  const r = (raw ?? {}) as Record<string, unknown>
+  return {
+    id: toStr(r.id),
+    name: toStr(r.name),
+    tag: toStr(r.tag),
+    description: toStr(r.description),
+    createdAt: toStr(r.created_at ?? r.createdAt),
+    owner: toStr(r.owner),
+    memberCount: toOptNum(r.member_count ?? r.memberCount),
+  }
+}
+
+function mapOrgMember(raw: unknown): OrgMember {
+  const r = (raw ?? {}) as Record<string, unknown>
+  return {
+    name: toStr(r.name),
+    role: toStr(r.role),
+    joinedAt: toStr(r.joined_at ?? r.joinedAt),
+  }
+}
+
+function mapOrgOp(raw: unknown): OrgOp {
+  const r = (raw ?? {}) as Record<string, unknown>
+  const startsAt = toStr(r.starts_at ?? r.startsAt)
+  return {
+    id: toStr(r.id),
+    title: toStr(r.title),
+    startsAt: startsAt || undefined,
+    body: toStr(r.body),
+    createdAt: toStr(r.created_at ?? r.createdAt),
+    author: toStr(r.author),
+  }
+}
+
+function mapOrgDetail(raw: unknown): OrgDetail {
+  const r = (raw ?? {}) as Record<string, unknown>
+  const members = Array.isArray(r.members) ? r.members : []
+  const ops = Array.isArray(r.ops) ? r.ops : []
+  return {
+    id: toStr(r.id),
+    name: toStr(r.name),
+    tag: toStr(r.tag),
+    description: toStr(r.description),
+    createdAt: toStr(r.created_at ?? r.createdAt),
+    ownerId: toStr(r.owner_id ?? r.ownerId) || undefined,
+    owner: toStr(r.owner),
+    members: members.map(mapOrgMember),
+    ops: ops.map(mapOrgOp),
+  }
+}
+
+export async function listOrgs(): Promise<OrgSummary[]> {
+  const data = await request<{ orgs?: unknown[] }>('/api/orgs')
+  return (data.orgs ?? []).map(mapOrgSummary)
+}
+
+export async function createOrg(input: OrgInput): Promise<{ id: string }> {
+  const data = await request<{ id?: unknown }>('/api/orgs', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: input.name,
+      tag: input.tag ?? '',
+      description: input.description ?? '',
+    }),
+  })
+  return { id: toStr(data.id) }
+}
+
+export async function getOrg(id: string): Promise<OrgDetail> {
+  const data = await request<Record<string, unknown>>(
+    `/api/orgs/${encodeURIComponent(id)}`,
+  )
+  const org = (data.org ?? {}) as Record<string, unknown>
+  return mapOrgDetail({ ...org, members: data.members, ops: data.ops })
+}
+
+export async function joinOrg(id: string): Promise<void> {
+  await request(`/api/orgs/${encodeURIComponent(id)}/join`, { method: 'POST' })
+}
+
+export async function leaveOrg(id: string): Promise<void> {
+  await request(`/api/orgs/${encodeURIComponent(id)}/leave`, { method: 'POST' })
+}
+
+export async function deleteOrg(id: string): Promise<void> {
+  await request(`/api/orgs/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function createOp(orgId: string, input: OpInput): Promise<void> {
+  await request(`/api/orgs/${encodeURIComponent(orgId)}/ops`, {
+    method: 'POST',
+    body: JSON.stringify({
+      title: input.title,
+      startsAt: input.startsAt,
+      body: input.body ?? '',
+    }),
+  })
+}
+
+export async function deleteOp(orgId: string, eventId: string): Promise<void> {
+  await request(
+    `/api/orgs/${encodeURIComponent(orgId)}/ops/${encodeURIComponent(eventId)}`,
+    { method: 'DELETE' },
+  )
+}
+
 // --- presentation helpers -------------------------------------------------
 
 /** Render an ISO timestamp as a compact relative time, e.g. "3h ago". */
@@ -273,6 +431,14 @@ export function relativeTime(iso: string): string {
   const mo = Math.floor(day / 30)
   if (mo < 12) return `${mo}mo ago`
   return `${Math.floor(day / 365)}y ago`
+}
+
+/** Format an ISO datetime for display, e.g. "Jun 25, 2026, 8:00 PM". Guards bad input. */
+export function formatDateTime(iso: string | undefined): string {
+  if (!iso) return ''
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return ''
+  return new Date(t).toLocaleString()
 }
 
 /** True if a string looks like an http(s) URL we can render as an image. */
