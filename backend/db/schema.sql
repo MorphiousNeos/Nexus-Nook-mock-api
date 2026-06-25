@@ -40,3 +40,42 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_user_ships_user_id ON user_ships(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_progress_user_id ON user_progress(user_id);
+
+-- =============================================================================
+-- COMMUNITY
+-- =============================================================================
+
+-- Looking For Group posts
+CREATE TABLE IF NOT EXISTS lfg_posts (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(140) NOT NULL,
+  activity VARCHAR(60),
+  region VARCHAR(60),
+  players_needed INTEGER,
+  body TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_lfg_created ON lfg_posts(created_at DESC);
+
+-- Community feed posts
+CREATE TABLE IF NOT EXISTS community_posts (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  image_url TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_posts_created ON community_posts(created_at DESC);
+
+-- Player marketplace listings
+CREATE TABLE IF NOT EXISTS market_listings (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  kind VARCHAR(10) NOT NULL DEFAULT 'sell',
+  title VARCHAR(140) NOT NULL,
+  price BIGINT,
+  body TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_market_created ON market_listings(created_at DESC);

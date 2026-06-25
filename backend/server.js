@@ -444,6 +444,167 @@ app.get('/api/servers/status', async (req, res) => {
 });
 
 // =============================================================================
+// COMMUNITY ROUTES (LFG, feed, marketplace)
+// =============================================================================
+// All listings are public to read; creating/deleting requires auth. Authors are
+// surfaced by their public username only. User-generated content — keep it
+// civil; no RSI account data is involved.
+
+const clamp = (s, n) => (typeof s === 'string' ? s.trim().slice(0, n) : '');
+
+// --- Looking For Group ---
+app.get('/api/lfg', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT l.id, l.title, l.activity, l.region, l.players_needed, l.body,
+              l.created_at, u.username AS author
+       FROM lfg_posts l JOIN users u ON u.id = l.user_id
+       ORDER BY l.created_at DESC LIMIT 100`
+    );
+    res.json({ posts: result.rows });
+  } catch (error) {
+    console.error('LFG list error:', error);
+    res.status(500).json({ error: 'Failed to load LFG posts' });
+  }
+});
+
+app.post('/api/lfg', authenticateToken, async (req, res) => {
+  try {
+    const title = clamp(req.body.title, 140);
+    if (!title) return res.status(400).json({ error: 'A title is required' });
+    const activity = clamp(req.body.activity, 60) || null;
+    const region = clamp(req.body.region, 60) || null;
+    const body = clamp(req.body.body, 2000) || null;
+    const playersNeeded = Number.isFinite(+req.body.playersNeeded)
+      ? Math.max(0, Math.min(100, parseInt(req.body.playersNeeded, 10)))
+      : null;
+
+    const result = await pool.query(
+      `INSERT INTO lfg_posts (user_id, title, activity, region, players_needed, body)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at`,
+      [req.user.userId, title, activity, region, playersNeeded, body]
+    );
+    res.status(201).json({ success: true, id: result.rows[0].id });
+  } catch (error) {
+    console.error('LFG create error:', error);
+    res.status(500).json({ error: 'Failed to create LFG post' });
+  }
+});
+
+app.delete('/api/lfg/:id', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM lfg_posts WHERE id = $1 AND user_id = $2 RETURNING id',
+      [req.params.id, req.user.userId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('LFG delete error:', error);
+    res.status(500).json({ error: 'Failed to delete LFG post' });
+  }
+});
+
+// --- Community feed ---
+app.get('/api/posts', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT p.id, p.body, p.image_url, p.created_at, u.username AS author
+       FROM community_posts p JOIN users u ON u.id = p.user_id
+       ORDER BY p.created_at DESC LIMIT 100`
+    );
+    res.json({ posts: result.rows });
+  } catch (error) {
+    console.error('Posts list error:', error);
+    res.status(500).json({ error: 'Failed to load posts' });
+  }
+});
+
+app.post('/api/posts', authenticateToken, async (req, res) => {
+  try {
+    const body = clamp(req.body.body, 2000);
+    if (!body) return res.status(400).json({ error: 'Post body is required' });
+    const imageUrl = clamp(req.body.imageUrl, 500) || null;
+
+    const result = await pool.query(
+      `INSERT INTO community_posts (user_id, body, image_url)
+       VALUES ($1, $2, $3) RETURNING id, created_at`,
+      [req.user.userId, body, imageUrl]
+    );
+    res.status(201).json({ success: true, id: result.rows[0].id });
+  } catch (error) {
+    console.error('Post create error:', error);
+    res.status(500).json({ error: 'Failed to create post' });
+  }
+});
+
+app.delete('/api/posts/:id', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM community_posts WHERE id = $1 AND user_id = $2 RETURNING id',
+      [req.params.id, req.user.userId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Post delete error:', error);
+    res.status(500).json({ error: 'Failed to delete post' });
+  }
+});
+
+// --- Marketplace ---
+app.get('/api/market', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT m.id, m.kind, m.title, m.price, m.body, m.created_at, u.username AS author
+       FROM market_listings m JOIN users u ON u.id = m.user_id
+       ORDER BY m.created_at DESC LIMIT 100`
+    );
+    res.json({ listings: result.rows });
+  } catch (error) {
+    console.error('Market list error:', error);
+    res.status(500).json({ error: 'Failed to load listings' });
+  }
+});
+
+app.post('/api/market', authenticateToken, async (req, res) => {
+  try {
+    const title = clamp(req.body.title, 140);
+    if (!title) return res.status(400).json({ error: 'A title is required' });
+    const allowed = ['sell', 'buy', 'trade'];
+    const kind = allowed.includes(req.body.kind) ? req.body.kind : 'sell';
+    const body = clamp(req.body.body, 2000) || null;
+    const price = Number.isFinite(+req.body.price)
+      ? Math.max(0, Math.round(+req.body.price))
+      : null;
+
+    const result = await pool.query(
+      `INSERT INTO market_listings (user_id, kind, title, price, body)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at`,
+      [req.user.userId, kind, title, price, body]
+    );
+    res.status(201).json({ success: true, id: result.rows[0].id });
+  } catch (error) {
+    console.error('Market create error:', error);
+    res.status(500).json({ error: 'Failed to create listing' });
+  }
+});
+
+app.delete('/api/market/:id', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM market_listings WHERE id = $1 AND user_id = $2 RETURNING id',
+      [req.params.id, req.user.userId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Market delete error:', error);
+    res.status(500).json({ error: 'Failed to delete listing' });
+  }
+});
+
+// =============================================================================
 // ERROR HANDLING
 // =============================================================================
 app.use((err, req, res, next) => {
