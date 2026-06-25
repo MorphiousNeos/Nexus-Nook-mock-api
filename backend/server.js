@@ -605,6 +605,186 @@ app.delete('/api/market/:id', authenticateToken, async (req, res) => {
 });
 
 // =============================================================================
+// ORG / OPERATIONS ROUTES
+// =============================================================================
+
+// List all orgs (public) with member counts.
+app.get('/api/orgs', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT o.id, o.name, o.tag, o.description, o.created_at,
+              u.username AS owner,
+              (SELECT COUNT(*) FROM org_members m WHERE m.org_id = o.id) AS member_count
+       FROM orgs o JOIN users u ON u.id = o.owner_id
+       ORDER BY o.created_at DESC LIMIT 100`
+    );
+    res.json({ orgs: result.rows });
+  } catch (error) {
+    console.error('Orgs list error:', error);
+    res.status(500).json({ error: 'Failed to load orgs' });
+  }
+});
+
+// Create an org (creator becomes owner + first member).
+app.post('/api/orgs', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const name = clamp(req.body.name, 120);
+    if (!name) return res.status(400).json({ error: 'An org name is required' });
+    const tag = clamp(req.body.tag, 20) || null;
+    const description = clamp(req.body.description, 2000) || null;
+
+    await client.query('BEGIN');
+    const orgResult = await client.query(
+      `INSERT INTO orgs (owner_id, name, tag, description)
+       VALUES ($1, $2, $3, $4) RETURNING id`,
+      [req.user.userId, name, tag, description]
+    );
+    const orgId = orgResult.rows[0].id;
+    await client.query(
+      `INSERT INTO org_members (org_id, user_id, role) VALUES ($1, $2, 'owner')`,
+      [orgId, req.user.userId]
+    );
+    await client.query('COMMIT');
+    res.status(201).json({ success: true, id: orgId });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Org create error:', error);
+    res.status(500).json({ error: 'Failed to create org' });
+  } finally {
+    client.release();
+  }
+});
+
+// Org detail: members + scheduled ops.
+app.get('/api/orgs/:id', async (req, res) => {
+  try {
+    const orgResult = await pool.query(
+      `SELECT o.id, o.name, o.tag, o.description, o.created_at, o.owner_id,
+              u.username AS owner
+       FROM orgs o JOIN users u ON u.id = o.owner_id WHERE o.id = $1`,
+      [req.params.id]
+    );
+    if (orgResult.rows.length === 0) return res.status(404).json({ error: 'Org not found' });
+
+    const members = await pool.query(
+      `SELECT u.username AS name, m.role, m.joined_at
+       FROM org_members m JOIN users u ON u.id = m.user_id
+       WHERE m.org_id = $1 ORDER BY m.joined_at ASC`,
+      [req.params.id]
+    );
+    const ops = await pool.query(
+      `SELECT e.id, e.title, e.starts_at, e.body, e.created_at, u.username AS author
+       FROM ops_events e JOIN users u ON u.id = e.user_id
+       WHERE e.org_id = $1 ORDER BY e.starts_at NULLS LAST, e.created_at DESC LIMIT 100`,
+      [req.params.id]
+    );
+    res.json({ org: orgResult.rows[0], members: members.rows, ops: ops.rows });
+  } catch (error) {
+    console.error('Org detail error:', error);
+    res.status(500).json({ error: 'Failed to load org' });
+  }
+});
+
+// Join an org.
+app.post('/api/orgs/:id/join', authenticateToken, async (req, res) => {
+  try {
+    await pool.query(
+      `INSERT INTO org_members (org_id, user_id) VALUES ($1, $2)
+       ON CONFLICT (org_id, user_id) DO NOTHING`,
+      [req.params.id, req.user.userId]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Org join error:', error);
+    res.status(500).json({ error: 'Failed to join org' });
+  }
+});
+
+// Leave an org (the owner cannot leave their own org).
+app.post('/api/orgs/:id/leave', authenticateToken, async (req, res) => {
+  try {
+    const owner = await pool.query('SELECT owner_id FROM orgs WHERE id = $1', [req.params.id]);
+    if (owner.rows[0]?.owner_id === req.user.userId) {
+      return res.status(400).json({ error: 'The owner cannot leave; delete the org instead.' });
+    }
+    await pool.query('DELETE FROM org_members WHERE org_id = $1 AND user_id = $2', [
+      req.params.id,
+      req.user.userId,
+    ]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Org leave error:', error);
+    res.status(500).json({ error: 'Failed to leave org' });
+  }
+});
+
+// Delete an org (owner only).
+app.delete('/api/orgs/:id', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM orgs WHERE id = $1 AND owner_id = $2 RETURNING id',
+      [req.params.id, req.user.userId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Org delete error:', error);
+    res.status(500).json({ error: 'Failed to delete org' });
+  }
+});
+
+// Schedule an operation/event (members only).
+app.post('/api/orgs/:id/ops', authenticateToken, async (req, res) => {
+  try {
+    const member = await pool.query(
+      'SELECT 1 FROM org_members WHERE org_id = $1 AND user_id = $2',
+      [req.params.id, req.user.userId]
+    );
+    if (member.rows.length === 0) {
+      return res.status(403).json({ error: 'Join the org to schedule operations.' });
+    }
+    const title = clamp(req.body.title, 140);
+    if (!title) return res.status(400).json({ error: 'A title is required' });
+    const body = clamp(req.body.body, 2000) || null;
+    let startsAt = null;
+    if (req.body.startsAt) {
+      const d = new Date(req.body.startsAt);
+      if (!isNaN(d.getTime())) startsAt = d.toISOString();
+    }
+
+    const result = await pool.query(
+      `INSERT INTO ops_events (org_id, user_id, title, starts_at, body)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [req.params.id, req.user.userId, title, startsAt, body]
+    );
+    res.status(201).json({ success: true, id: result.rows[0].id });
+  } catch (error) {
+    console.error('Ops create error:', error);
+    res.status(500).json({ error: 'Failed to schedule operation' });
+  }
+});
+
+// Delete an operation (its author or the org owner).
+app.delete('/api/orgs/:id/ops/:eventId', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `DELETE FROM ops_events e
+       USING orgs o
+       WHERE e.id = $1 AND e.org_id = $2 AND o.id = e.org_id
+         AND (e.user_id = $3 OR o.owner_id = $3)
+       RETURNING e.id`,
+      [req.params.eventId, req.params.id, req.user.userId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Ops delete error:', error);
+    res.status(500).json({ error: 'Failed to delete operation' });
+  }
+});
+
+// =============================================================================
 // ERROR HANDLING
 // =============================================================================
 app.use((err, req, res, next) => {

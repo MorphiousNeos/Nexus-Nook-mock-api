@@ -79,3 +79,36 @@ CREATE TABLE IF NOT EXISTS market_listings (
   created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_market_created ON market_listings(created_at DESC);
+
+-- Orgs / groups
+CREATE TABLE IF NOT EXISTS orgs (
+  id SERIAL PRIMARY KEY,
+  owner_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(120) NOT NULL,
+  tag VARCHAR(20),
+  description TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_orgs_created ON orgs(created_at DESC);
+
+-- Org membership
+CREATE TABLE IF NOT EXISTS org_members (
+  org_id INTEGER REFERENCES orgs(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  role VARCHAR(20) DEFAULT 'member',
+  joined_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (org_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_org_members_user ON org_members(user_id);
+
+-- Scheduled operations / events for an org
+CREATE TABLE IF NOT EXISTS ops_events (
+  id SERIAL PRIMARY KEY,
+  org_id INTEGER REFERENCES orgs(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(140) NOT NULL,
+  starts_at TIMESTAMP,
+  body TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_ops_org ON ops_events(org_id, starts_at);
