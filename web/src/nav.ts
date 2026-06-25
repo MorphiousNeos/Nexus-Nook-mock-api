@@ -42,6 +42,12 @@ export const NAV_ITEMS: NavItem[] = [
     description: 'Coordinate with your crew. Organizations are on the way.',
   },
   {
+    to: '/community',
+    label: 'Community',
+    icon: '👥',
+    description: 'Find a group, share updates, and trade in the marketplace.',
+  },
+  {
     to: '/servers',
     label: 'Servers',
     icon: '📡',
