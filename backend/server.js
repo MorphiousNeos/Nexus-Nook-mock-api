@@ -452,6 +452,20 @@ app.get('/api/servers/status', async (req, res) => {
 
 const clamp = (s, n) => (typeof s === 'string' ? s.trim().slice(0, n) : '');
 
+// Accepts either a SID alone (e.g. "TEST") or a pasted RSI org URL and
+// extracts the SID portion. Returns null if nothing usable is found.
+// RSI SIDs are uppercase alphanumeric, 1-30 chars.
+const normalizeRsiSid = (input) => {
+  if (typeof input !== 'string') return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  const urlMatch = trimmed.match(/\/orgs\/([A-Z0-9]+)/i);
+  const candidate = urlMatch ? urlMatch[1] : trimmed;
+  const sid = candidate.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (sid.length < 1 || sid.length > 30) return null;
+  return sid;
+};
+
 // --- Looking For Group ---
 app.get('/api/lfg', async (req, res) => {
   try {
@@ -612,7 +626,7 @@ app.delete('/api/market/:id', authenticateToken, async (req, res) => {
 app.get('/api/orgs', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT o.id, o.name, o.tag, o.description, o.created_at,
+      `SELECT o.id, o.name, o.tag, o.description, o.rsi_sid, o.created_at,
               u.username AS owner,
               (SELECT COUNT(*) FROM org_members m WHERE m.org_id = o.id) AS member_count
        FROM orgs o JOIN users u ON u.id = o.owner_id
@@ -633,12 +647,13 @@ app.post('/api/orgs', authenticateToken, async (req, res) => {
     if (!name) return res.status(400).json({ error: 'An org name is required' });
     const tag = clamp(req.body.tag, 20) || null;
     const description = clamp(req.body.description, 2000) || null;
+    const rsiSid = normalizeRsiSid(req.body.rsiSid ?? req.body.rsi_sid);
 
     await client.query('BEGIN');
     const orgResult = await client.query(
-      `INSERT INTO orgs (owner_id, name, tag, description)
-       VALUES ($1, $2, $3, $4) RETURNING id`,
-      [req.user.userId, name, tag, description]
+      `INSERT INTO orgs (owner_id, name, tag, description, rsi_sid)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [req.user.userId, name, tag, description, rsiSid]
     );
     const orgId = orgResult.rows[0].id;
     await client.query(
@@ -660,7 +675,7 @@ app.post('/api/orgs', authenticateToken, async (req, res) => {
 app.get('/api/orgs/:id', async (req, res) => {
   try {
     const orgResult = await pool.query(
-      `SELECT o.id, o.name, o.tag, o.description, o.created_at, o.owner_id,
+      `SELECT o.id, o.name, o.tag, o.description, o.rsi_sid, o.created_at, o.owner_id,
               u.username AS owner
        FROM orgs o JOIN users u ON u.id = o.owner_id WHERE o.id = $1`,
       [req.params.id]

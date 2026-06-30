@@ -87,9 +87,12 @@ CREATE TABLE IF NOT EXISTS orgs (
   name VARCHAR(120) NOT NULL,
   tag VARCHAR(20),
   description TEXT,
+  rsi_sid VARCHAR(30),
   created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_orgs_created ON orgs(created_at DESC);
+-- Idempotent backfill for existing installs that pre-date rsi_sid.
+ALTER TABLE orgs ADD COLUMN IF NOT EXISTS rsi_sid VARCHAR(30);
 
 -- Org membership
 CREATE TABLE IF NOT EXISTS org_members (

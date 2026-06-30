@@ -10,6 +10,8 @@ import {
   joinOrg,
   leaveOrg,
   relativeTime,
+  rsiOrgUrl,
+  rsiSpectrumUrl,
   type OrgDetail as OrgDetailData,
 } from '../../services/community'
 
@@ -173,6 +175,37 @@ export default function OrgDetail({
               <p className="mt-3 whitespace-pre-wrap text-sm text-slate-300">
                 {org.description}
               </p>
+            )}
+
+            {org.rsiSid && (
+              <div className="mt-4 rounded-lg border border-blue-900/50 bg-blue-950/20 p-3">
+                <p className="text-xs uppercase tracking-wider text-blue-300">
+                  Linked RSI org
+                </p>
+                <p className="mt-0.5 font-medium text-slate-100">SID: {org.rsiSid}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <a
+                    href={rsiOrgUrl(org.rsiSid)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-md border border-blue-700/60 bg-blue-950/40 px-3 py-1.5 text-xs font-medium text-blue-200 transition hover:bg-blue-900/40"
+                  >
+                    Open on RSI ↗
+                  </a>
+                  <a
+                    href={rsiSpectrumUrl(org.rsiSid)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-md border border-blue-700/60 bg-blue-950/40 px-3 py-1.5 text-xs font-medium text-blue-200 transition hover:bg-blue-900/40"
+                  >
+                    Open Spectrum ↗
+                  </a>
+                </div>
+                <p className="mt-2 text-[11px] text-slate-500">
+                  Link only — Nexus Nook never reads RSI rosters, credentials, or
+                  Spectrum messages.
+                </p>
+              </div>
             )}
 
             <div className="mt-4 flex flex-wrap items-center gap-2">

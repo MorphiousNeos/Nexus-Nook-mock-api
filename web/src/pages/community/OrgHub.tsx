@@ -4,7 +4,9 @@ import {
   communityAvailable,
   createOrg,
   listOrgs,
+  normalizeRsiSid,
   relativeTime,
+  rsiOrgUrl,
   type OrgSummary,
 } from '../../services/community'
 import CommunityNotice from './CommunityNotice'
@@ -20,8 +22,11 @@ export default function OrgHub() {
   const [name, setName] = useState('')
   const [tag, setTag] = useState('')
   const [description, setDescription] = useState('')
+  const [rsiSid, setRsiSid] = useState('')
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+
+  const sidPreview = normalizeRsiSid(rsiSid)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -65,10 +70,12 @@ export default function OrgHub() {
         name: name.trim(),
         tag: tag.trim(),
         description: description.trim(),
+        rsiSid: sidPreview || undefined,
       })
       setName('')
       setTag('')
       setDescription('')
+      setRsiSid('')
       await refresh()
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Could not create that org.')
@@ -103,6 +110,41 @@ export default function OrgHub() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+              Link to RSI org (optional)
+            </span>
+            <input
+              type="text"
+              className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 transition focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              placeholder="SID (e.g. CRMSN) or the org URL from robertsspaceindustries.com"
+              value={rsiSid}
+              onChange={(e) => setRsiSid(e.target.value)}
+            />
+            <p className="mt-1 text-[11px] text-slate-500">
+              Public SID only — we link out to the org's page on RSI. No login, no
+              scraping, no member rosters pulled from RSI.
+              {rsiSid && !sidPreview && (
+                <span className="ml-1 text-amber-300">
+                  Doesn't look like a valid SID.
+                </span>
+              )}
+              {sidPreview && (
+                <span className="ml-1 text-purple-300">
+                  Will link to{' '}
+                  <a
+                    className="underline"
+                    href={rsiOrgUrl(sidPreview)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    /orgs/{sidPreview}
+                  </a>
+                  .
+                </span>
+              )}
+            </p>
           </label>
           {formError && (
             <p className="text-sm text-amber-300 sm:col-span-2">{formError}</p>
@@ -154,6 +196,14 @@ export default function OrgHub() {
                           {o.name || 'Untitled org'}
                         </span>
                         {o.tag && <Badge tone="purple">[{o.tag}]</Badge>}
+                        {o.rsiSid && (
+                          <span
+                            title={`Linked RSI org: ${o.rsiSid}`}
+                            className="rounded bg-blue-950/60 px-1.5 py-0.5 text-[10px] font-medium text-blue-300"
+                          >
+                            RSI · {o.rsiSid}
+                          </span>
+                        )}
                       </div>
                       <p className="mt-0.5 text-xs text-slate-500">
                         {o.owner || 'Unknown'} ·{' '}

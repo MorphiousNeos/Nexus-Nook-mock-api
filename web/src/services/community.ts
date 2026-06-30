@@ -261,6 +261,8 @@ export interface OrgSummary {
   createdAt: string
   owner: string
   memberCount?: number
+  /** Public RSI org SID (e.g. "TEST"). Read-only link to robertsspaceindustries.com. */
+  rsiSid?: string
 }
 
 export interface OrgMember {
@@ -288,12 +290,16 @@ export interface OrgDetail {
   owner: string
   members: OrgMember[]
   ops: OrgOp[]
+  /** Public RSI org SID (e.g. "TEST"). Display-only link to robertsspaceindustries.com. */
+  rsiSid?: string
 }
 
 export interface OrgInput {
   name: string
   tag?: string
   description?: string
+  /** Public RSI org SID. Uppercase alphanumeric, validated by normalizeRsiSid. */
+  rsiSid?: string
 }
 
 export interface OpInput {
@@ -312,6 +318,7 @@ function mapOrgSummary(raw: unknown): OrgSummary {
     createdAt: toStr(r.created_at ?? r.createdAt),
     owner: toStr(r.owner),
     memberCount: toOptNum(r.member_count ?? r.memberCount),
+    rsiSid: toStr(r.rsi_sid ?? r.rsiSid) || undefined,
   }
 }
 
@@ -351,6 +358,7 @@ function mapOrgDetail(raw: unknown): OrgDetail {
     owner: toStr(r.owner),
     members: members.map(mapOrgMember),
     ops: ops.map(mapOrgOp),
+    rsiSid: toStr(r.rsi_sid ?? r.rsiSid) || undefined,
   }
 }
 
@@ -366,6 +374,7 @@ export async function createOrg(input: OrgInput): Promise<{ id: string }> {
       name: input.name,
       tag: input.tag ?? '',
       description: input.description ?? '',
+      rsiSid: input.rsiSid ?? '',
     }),
   })
   return { id: toStr(data.id) }
@@ -450,4 +459,33 @@ export function isHttpUrl(value: string | undefined): value is string {
   } catch {
     return false
   }
+}
+
+/**
+ * Normalize a user-supplied RSI org SID — accepts the SID alone (e.g. "TEST")
+ * or a pasted RSI org URL and extracts the SID. RSI SIDs are uppercase
+ * alphanumeric, 1-30 chars. Returns empty string when nothing usable is found.
+ */
+export function normalizeRsiSid(input: string | undefined): string {
+  if (!input) return ''
+  const trimmed = input.trim()
+  if (!trimmed) return ''
+
+  // Handle pasted URLs like https://robertsspaceindustries.com/orgs/TEST
+  const urlMatch = trimmed.match(/\/orgs\/([A-Z0-9]+)/i)
+  const candidate = urlMatch ? urlMatch[1] : trimmed
+
+  const sid = candidate.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  if (sid.length < 1 || sid.length > 30) return ''
+  return sid
+}
+
+/** Public RSI org page URL for a given SID. */
+export function rsiOrgUrl(sid: string): string {
+  return `https://robertsspaceindustries.com/orgs/${encodeURIComponent(sid)}`
+}
+
+/** Public Spectrum community link for a given SID. */
+export function rsiSpectrumUrl(sid: string): string {
+  return `https://robertsspaceindustries.com/spectrum/community/${encodeURIComponent(sid)}`
 }
