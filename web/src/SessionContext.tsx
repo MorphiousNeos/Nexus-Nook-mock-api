@@ -11,6 +11,7 @@ import { getStore } from './services/store'
 import type {
   AppState,
   AuthInput,
+  BlueprintEntry,
   InventoryItem,
   ServerStatus,
   Ship,
@@ -28,6 +29,9 @@ interface SessionContextValue {
   removeShip: (id: string) => Promise<void>
   addItem: (item: Omit<InventoryItem, 'id'>) => Promise<void>
   removeItem: (id: string) => Promise<void>
+  addBlueprint: (entry: Omit<BlueprintEntry, 'id'>) => Promise<void>
+  updateBlueprint: (id: string, patch: Partial<Omit<BlueprintEntry, 'id'>>) => Promise<void>
+  removeBlueprint: (id: string) => Promise<void>
   getServerStatus: () => Promise<ServerStatus[]>
 }
 
@@ -103,6 +107,30 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [store],
   )
 
+  const addBlueprint = useCallback(
+    async (entry: Omit<BlueprintEntry, 'id'>) => {
+      const blueprints = await store.addBlueprint(entry)
+      setState((prev) => (prev ? { ...prev, blueprints } : prev))
+    },
+    [store],
+  )
+
+  const updateBlueprint = useCallback(
+    async (id: string, patch: Partial<Omit<BlueprintEntry, 'id'>>) => {
+      const blueprints = await store.updateBlueprint(id, patch)
+      setState((prev) => (prev ? { ...prev, blueprints } : prev))
+    },
+    [store],
+  )
+
+  const removeBlueprint = useCallback(
+    async (id: string) => {
+      const blueprints = await store.removeBlueprint(id)
+      setState((prev) => (prev ? { ...prev, blueprints } : prev))
+    },
+    [store],
+  )
+
   const getServerStatus = useCallback(() => store.getServerStatus(), [store])
 
   const value: SessionContextValue = {
@@ -116,6 +144,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     removeShip,
     addItem,
     removeItem,
+    addBlueprint,
+    updateBlueprint,
+    removeBlueprint,
     getServerStatus,
   }
 

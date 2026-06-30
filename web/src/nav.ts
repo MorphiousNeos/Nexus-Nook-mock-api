@@ -36,6 +36,12 @@ export const NAV_ITEMS: NavItem[] = [
     description: 'A personal manifest of components, cargo, and gear.',
   },
   {
+    to: '/blueprints',
+    label: 'Blueprints',
+    icon: '📐',
+    description: 'Track crafting blueprints you want, have found, or have crafted.',
+  },
+  {
     to: '/org',
     label: 'Org',
     icon: '🌌',

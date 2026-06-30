@@ -1,6 +1,7 @@
 import type {
   AppState,
   AuthInput,
+  BlueprintEntry,
   InventoryItem,
   ServerStatus,
   Ship,
@@ -18,7 +19,10 @@ function loadRaw(): AppState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    return JSON.parse(raw) as AppState
+    const parsed = JSON.parse(raw) as AppState
+    // Normalize missing blueprints field for sessions stored before this feature.
+    if (!Array.isArray(parsed.blueprints)) parsed.blueprints = []
+    return parsed
   } catch {
     return null
   }
@@ -74,6 +78,7 @@ export class LocalStore implements Store {
       },
       fleet: [],
       inventory: [],
+      blueprints: [],
     }
     persist(state)
     return state
@@ -127,6 +132,31 @@ export class LocalStore implements Store {
       s.inventory = s.inventory.filter((x) => x.id !== id)
     })
     return state.inventory
+  }
+
+  async addBlueprint(entry: Omit<BlueprintEntry, 'id'>): Promise<BlueprintEntry[]> {
+    const state = this.mutate((s) => {
+      s.blueprints.push({ ...entry, id: uid() })
+    })
+    return state.blueprints
+  }
+
+  async updateBlueprint(
+    id: string,
+    patch: Partial<Omit<BlueprintEntry, 'id'>>,
+  ): Promise<BlueprintEntry[]> {
+    const state = this.mutate((s) => {
+      const idx = s.blueprints.findIndex((x) => x.id === id)
+      if (idx !== -1) s.blueprints[idx] = { ...s.blueprints[idx], ...patch }
+    })
+    return state.blueprints
+  }
+
+  async removeBlueprint(id: string): Promise<BlueprintEntry[]> {
+    const state = this.mutate((s) => {
+      s.blueprints = s.blueprints.filter((x) => x.id !== id)
+    })
+    return state.blueprints
   }
 
   async getServerStatus(): Promise<ServerStatus[]> {

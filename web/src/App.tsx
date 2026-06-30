@@ -7,6 +7,7 @@ import OverviewPage from './pages/app/OverviewPage'
 import FleetPage from './pages/app/FleetPage'
 import TradePage from './pages/app/TradePage'
 import InventoryPage from './pages/app/InventoryPage'
+import BlueprintsPage from './pages/app/BlueprintsPage'
 import OrgPage from './pages/app/OrgPage'
 import CommunityPage from './pages/app/CommunityPage'
 import ServersPage from './pages/app/ServersPage'
@@ -46,6 +47,7 @@ function Layout() {
               <Route path="fleet" element={<FleetPage />} />
               <Route path="trade" element={<TradePage />} />
               <Route path="inventory" element={<InventoryPage />} />
+              <Route path="blueprints" element={<BlueprintsPage />} />
               <Route path="org" element={<OrgPage />} />
               <Route path="community" element={<CommunityPage />} />
               <Route path="servers" element={<ServersPage />} />

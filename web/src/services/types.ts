@@ -25,6 +25,17 @@ export interface InventoryItem {
   notes?: string
 }
 
+/** Status of a blueprint in the player's crafting tracker. */
+export type BlueprintStatus = 'wanted' | 'found' | 'crafted'
+
+export interface BlueprintEntry {
+  id: string
+  name: string
+  category?: string
+  status: BlueprintStatus
+  notes?: string
+}
+
 export type ServerStatusLevel = 'online' | 'degraded' | 'maintenance' | 'offline'
 
 export interface ServerStatus {
@@ -42,6 +53,7 @@ export interface AppState {
   profile: UserProfile
   fleet: Ship[]
   inventory: InventoryItem[]
+  blueprints: BlueprintEntry[]
 }
 
 export interface AuthInput {
@@ -75,6 +87,10 @@ export interface Store {
 
   addItem(item: Omit<InventoryItem, 'id'>): Promise<InventoryItem[]>
   removeItem(id: string): Promise<InventoryItem[]>
+
+  addBlueprint(entry: Omit<BlueprintEntry, 'id'>): Promise<BlueprintEntry[]>
+  updateBlueprint(id: string, patch: Partial<Omit<BlueprintEntry, 'id'>>): Promise<BlueprintEntry[]>
+  removeBlueprint(id: string): Promise<BlueprintEntry[]>
 
   getServerStatus(): Promise<ServerStatus[]>
 }

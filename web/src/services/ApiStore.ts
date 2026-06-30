@@ -1,6 +1,7 @@
 import type {
   AppState,
   AuthInput,
+  BlueprintEntry,
   InventoryItem,
   ServerStatus,
   ServerStatusLevel,
@@ -66,19 +67,24 @@ export class ApiStore implements Store {
 
   // --- gameData blob helpers (fleet/inventory/profile extras) ---
 
-  private cache(): { fleet: Ship[]; inventory: InventoryItem[]; rsiHandle: string } {
+  private cache(): { fleet: Ship[]; inventory: InventoryItem[]; blueprints: BlueprintEntry[]; rsiHandle: string } {
     try {
       const raw = localStorage.getItem(CACHE_KEY)
-      if (raw) return JSON.parse(raw)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (!Array.isArray(parsed.blueprints)) parsed.blueprints = []
+        return parsed
+      }
     } catch {
       /* ignore */
     }
-    return { fleet: [], inventory: [], rsiHandle: '' }
+    return { fleet: [], inventory: [], blueprints: [], rsiHandle: '' }
   }
 
   private async saveBlob(blob: {
     fleet: Ship[]
     inventory: InventoryItem[]
+    blueprints: BlueprintEntry[]
     rsiHandle: string
   }): Promise<void> {
     localStorage.setItem(CACHE_KEY, JSON.stringify(blob))
@@ -91,6 +97,7 @@ export class ApiStore implements Store {
   private async loadBlob(): Promise<{
     fleet: Ship[]
     inventory: InventoryItem[]
+    blueprints: BlueprintEntry[]
     rsiHandle: string
   }> {
     const data = await this.request<{ gameData: any }>('/api/user/load')
@@ -98,6 +105,7 @@ export class ApiStore implements Store {
     const normalized = {
       fleet: Array.isArray(blob.fleet) ? blob.fleet : [],
       inventory: Array.isArray(blob.inventory) ? blob.inventory : [],
+      blueprints: Array.isArray(blob.blueprints) ? blob.blueprints : [],
       rsiHandle: typeof blob.rsiHandle === 'string' ? blob.rsiHandle : '',
     }
     localStorage.setItem(CACHE_KEY, JSON.stringify(normalized))
@@ -119,6 +127,7 @@ export class ApiStore implements Store {
       },
       fleet: blob.fleet,
       inventory: blob.inventory,
+      blueprints: blob.blueprints,
     }
   }
 
@@ -179,6 +188,7 @@ export class ApiStore implements Store {
       await this.saveBlob({
         fleet: state.fleet,
         inventory: state.inventory,
+        blueprints: state.blueprints,
         rsiHandle: state.profile.rsiHandle,
       })
     }
@@ -194,7 +204,7 @@ export class ApiStore implements Store {
     const blob = this.cache()
     if (patch.rsiHandle !== undefined) {
       blob.rsiHandle = patch.rsiHandle
-      await this.saveBlob(blob)
+      await this.saveBlob({ ...blob, rsiHandle: patch.rsiHandle })
     }
     // displayName/email changes are local-only (no backend endpoint for them).
     const session = await this.getSession()
@@ -233,6 +243,31 @@ export class ApiStore implements Store {
     blob.inventory = blob.inventory.filter((x) => x.id !== id)
     await this.saveBlob(blob)
     return blob.inventory
+  }
+
+  async addBlueprint(entry: Omit<BlueprintEntry, 'id'>): Promise<BlueprintEntry[]> {
+    const blob = this.cache()
+    blob.blueprints = [...blob.blueprints, { ...entry, id: uid() }]
+    await this.saveBlob(blob)
+    return blob.blueprints
+  }
+
+  async updateBlueprint(
+    id: string,
+    patch: Partial<Omit<BlueprintEntry, 'id'>>,
+  ): Promise<BlueprintEntry[]> {
+    const blob = this.cache()
+    const idx = blob.blueprints.findIndex((x) => x.id === id)
+    if (idx !== -1) blob.blueprints[idx] = { ...blob.blueprints[idx], ...patch }
+    await this.saveBlob(blob)
+    return blob.blueprints
+  }
+
+  async removeBlueprint(id: string): Promise<BlueprintEntry[]> {
+    const blob = this.cache()
+    blob.blueprints = blob.blueprints.filter((x) => x.id !== id)
+    await this.saveBlob(blob)
+    return blob.blueprints
   }
 
   async getServerStatus(): Promise<ServerStatus[]> {
