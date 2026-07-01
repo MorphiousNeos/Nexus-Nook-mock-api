@@ -14,6 +14,9 @@ export default function Footer() {
         We never ask for your RSI password. All RSI data is your own public handle, entered
         by you.
       </p>
+      <p className="mt-3 text-slate-600">
+        &copy; 2026 Cole Houston. All Rights Reserved.
+      </p>
     </footer>
   )
 }

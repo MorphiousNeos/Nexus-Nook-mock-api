@@ -6,6 +6,20 @@ backed by a mock API (with a path to real data sources).
 > **Status:** Foundation / scaffolding. The data model and API are being built from
 > existing design work. See `docs/ROADMAP.md` for the current plan and progress.
 
+## Copyright & License
+
+**Copyright &copy; 2026 Cole Houston. All Rights Reserved.**
+
+This project is **proprietary source-available** software. The source is public
+so that contributors and the Star Citizen community can review it, but **no
+license to copy, modify, redistribute, or build derivative products is
+granted.** See [`LICENSE`](./LICENSE) for the full notice. For licensing
+inquiries: cole@houstonshome.com.
+
+Star Citizen&reg; is a registered trademark of Cloud Imperium Rights LLC.
+Nexus Nook is an unofficial, fan-made application and is not affiliated with,
+endorsed by, or sponsored by Cloud Imperium Games.
+
 ## Repository layout
 
 ```
