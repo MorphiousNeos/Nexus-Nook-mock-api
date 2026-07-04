@@ -10,6 +10,7 @@ import {
   type LfgPost,
 } from '../../services/community'
 import CommunityNotice from './CommunityNotice'
+import ReportButton from './ReportButton'
 
 export default function LfgBoard() {
   const { state } = useSession()
@@ -179,16 +180,18 @@ export default function LfgBoard() {
                       {p.author || 'Unknown'} · {relativeTime(p.createdAt)}
                     </p>
                   </div>
-                  {me && p.author === me && (
-                    <Button
-                      variant="danger"
-                      className="shrink-0"
-                      onClick={() => remove(p.id)}
-                      disabled={removingId === p.id}
-                    >
-                      {removingId === p.id ? 'Deleting…' : 'Delete'}
-                    </Button>
-                  )}
+                  <div className="flex shrink-0 items-center gap-3">
+                    {me && p.author !== me && <ReportButton kind="lfg" contentId={p.id} />}
+                    {me && p.author === me && (
+                      <Button
+                        variant="danger"
+                        onClick={() => remove(p.id)}
+                        disabled={removingId === p.id}
+                      >
+                        {removingId === p.id ? 'Deleting…' : 'Delete'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 {(p.activity || p.region || p.playersNeeded !== undefined) && (
                   <div className="mt-2 flex flex-wrap gap-1.5">

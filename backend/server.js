@@ -621,6 +621,62 @@ app.get('/api/servers/status', async (req, res) => {
 
 const clamp = (s, n) => (typeof s === 'string' ? s.trim().slice(0, n) : '');
 
+// --- Write-abuse protection -------------------------------------------------
+// Per-user cap on community writes: 12 per 5 minutes. Redis-backed with an
+// in-memory fallback so a Redis hiccup degrades to per-instance limiting
+// rather than an open door (or a closed community).
+const WRITE_LIMIT = 12;
+const WRITE_WINDOW_SEC = 300;
+const writeCountFallback = new Map();
+
+async function communityWriteLimit(req, res, next) {
+  const userId = req.user?.userId;
+  if (!userId) return res.status(401).json({ error: 'Access token required' });
+  try {
+    const key = `rl:community:${userId}`;
+    const count = await redis.incr(key);
+    if (count === 1) await redis.expire(key, WRITE_WINDOW_SEC);
+    if (count > WRITE_LIMIT) {
+      return res
+        .status(429)
+        .json({ error: 'Slow down a little — try again in a few minutes.' });
+    }
+  } catch {
+    const now = Date.now();
+    const entry = writeCountFallback.get(userId) || { count: 0, resetAt: now + WRITE_WINDOW_SEC * 1000 };
+    if (now > entry.resetAt) {
+      entry.count = 0;
+      entry.resetAt = now + WRITE_WINDOW_SEC * 1000;
+    }
+    entry.count += 1;
+    writeCountFallback.set(userId, entry);
+    if (entry.count > WRITE_LIMIT) {
+      return res
+        .status(429)
+        .json({ error: 'Slow down a little — try again in a few minutes.' });
+    }
+  }
+  next();
+}
+
+// Moderators: comma-separated ADMIN_EMAILS env var. Admins may delete any
+// community content (not accounts).
+const adminEmails = (process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
+async function isAdmin(userId) {
+  if (adminEmails.length === 0) return false;
+  try {
+    const r = await pool.query('SELECT email FROM users WHERE id = $1', [userId]);
+    const email = r.rows[0]?.email?.toLowerCase();
+    return !!email && adminEmails.includes(email);
+  } catch {
+    return false;
+  }
+}
+
 // Accepts either a SID alone (e.g. "TEST") or a pasted RSI org URL and
 // extracts the SID portion. Returns null if nothing usable is found.
 // RSI SIDs are uppercase alphanumeric, 1-30 chars.
@@ -651,7 +707,7 @@ app.get('/api/lfg', async (req, res) => {
   }
 });
 
-app.post('/api/lfg', authenticateToken, async (req, res) => {
+app.post('/api/lfg', authenticateToken, communityWriteLimit, async (req, res) => {
   try {
     const title = clamp(req.body.title, 140);
     if (!title) return res.status(400).json({ error: 'A title is required' });
@@ -676,10 +732,13 @@ app.post('/api/lfg', authenticateToken, async (req, res) => {
 
 app.delete('/api/lfg/:id', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      'DELETE FROM lfg_posts WHERE id = $1 AND user_id = $2 RETURNING id',
-      [req.params.id, req.user.userId]
-    );
+    const admin = await isAdmin(req.user.userId);
+    const result = admin
+      ? await pool.query('DELETE FROM lfg_posts WHERE id = $1 RETURNING id', [req.params.id])
+      : await pool.query(
+          'DELETE FROM lfg_posts WHERE id = $1 AND user_id = $2 RETURNING id',
+          [req.params.id, req.user.userId]
+        );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true });
   } catch (error) {
@@ -703,7 +762,7 @@ app.get('/api/posts', async (req, res) => {
   }
 });
 
-app.post('/api/posts', authenticateToken, async (req, res) => {
+app.post('/api/posts', authenticateToken, communityWriteLimit, async (req, res) => {
   try {
     const body = clamp(req.body.body, 2000);
     if (!body) return res.status(400).json({ error: 'Post body is required' });
@@ -723,10 +782,15 @@ app.post('/api/posts', authenticateToken, async (req, res) => {
 
 app.delete('/api/posts/:id', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      'DELETE FROM community_posts WHERE id = $1 AND user_id = $2 RETURNING id',
-      [req.params.id, req.user.userId]
-    );
+    const admin = await isAdmin(req.user.userId);
+    const result = admin
+      ? await pool.query('DELETE FROM community_posts WHERE id = $1 RETURNING id', [
+          req.params.id,
+        ])
+      : await pool.query(
+          'DELETE FROM community_posts WHERE id = $1 AND user_id = $2 RETURNING id',
+          [req.params.id, req.user.userId]
+        );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true });
   } catch (error) {
@@ -750,7 +814,7 @@ app.get('/api/market', async (req, res) => {
   }
 });
 
-app.post('/api/market', authenticateToken, async (req, res) => {
+app.post('/api/market', authenticateToken, communityWriteLimit, async (req, res) => {
   try {
     const title = clamp(req.body.title, 140);
     if (!title) return res.status(400).json({ error: 'A title is required' });
@@ -775,15 +839,63 @@ app.post('/api/market', authenticateToken, async (req, res) => {
 
 app.delete('/api/market/:id', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      'DELETE FROM market_listings WHERE id = $1 AND user_id = $2 RETURNING id',
-      [req.params.id, req.user.userId]
-    );
+    const admin = await isAdmin(req.user.userId);
+    const result = admin
+      ? await pool.query('DELETE FROM market_listings WHERE id = $1 RETURNING id', [
+          req.params.id,
+        ])
+      : await pool.query(
+          'DELETE FROM market_listings WHERE id = $1 AND user_id = $2 RETURNING id',
+          [req.params.id, req.user.userId]
+        );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true });
   } catch (error) {
     console.error('Market delete error:', error);
     res.status(500).json({ error: 'Failed to delete listing' });
+  }
+});
+
+// --- Content reports ---------------------------------------------------------
+// Anyone signed in can flag content for review; reports are stored for the
+// moderators (see ADMIN_EMAILS). Rate-limited like other community writes.
+app.post('/api/report', authenticateToken, communityWriteLimit, async (req, res) => {
+  try {
+    const allowedKinds = ['lfg', 'post', 'market', 'org', 'op'];
+    const kind = allowedKinds.includes(req.body.kind) ? req.body.kind : null;
+    const contentId = parseInt(req.body.contentId, 10);
+    const reason = clamp(req.body.reason, 500) || null;
+    if (!kind || !Number.isFinite(contentId)) {
+      return res.status(400).json({ error: 'A content kind and id are required' });
+    }
+    await pool.query(
+      `INSERT INTO content_reports (reporter_id, kind, content_id, reason)
+       VALUES ($1, $2, $3, $4)`,
+      [req.user.userId, kind, contentId, reason]
+    );
+    res.status(201).json({ success: true });
+  } catch (error) {
+    console.error('Report error:', error);
+    res.status(500).json({ error: 'Failed to submit report' });
+  }
+});
+
+// Moderators: list recent reports.
+app.get('/api/reports', authenticateToken, async (req, res) => {
+  try {
+    if (!(await isAdmin(req.user.userId))) {
+      return res.status(403).json({ error: 'Moderator access required' });
+    }
+    const result = await pool.query(
+      `SELECT r.id, r.kind, r.content_id, r.reason, r.created_at,
+              u.username AS reporter
+       FROM content_reports r LEFT JOIN users u ON u.id = r.reporter_id
+       ORDER BY r.created_at DESC LIMIT 200`
+    );
+    res.json({ reports: result.rows });
+  } catch (error) {
+    console.error('Reports list error:', error);
+    res.status(500).json({ error: 'Failed to load reports' });
   }
 });
 
@@ -809,7 +921,7 @@ app.get('/api/orgs', async (req, res) => {
 });
 
 // Create an org (creator becomes owner + first member).
-app.post('/api/orgs', authenticateToken, async (req, res) => {
+app.post('/api/orgs', authenticateToken, communityWriteLimit, async (req, res) => {
   const client = await pool.connect();
   try {
     const name = clamp(req.body.name, 120);
@@ -906,10 +1018,13 @@ app.post('/api/orgs/:id/leave', authenticateToken, async (req, res) => {
 // Delete an org (owner only).
 app.delete('/api/orgs/:id', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      'DELETE FROM orgs WHERE id = $1 AND owner_id = $2 RETURNING id',
-      [req.params.id, req.user.userId]
-    );
+    const admin = await isAdmin(req.user.userId);
+    const result = admin
+      ? await pool.query('DELETE FROM orgs WHERE id = $1 RETURNING id', [req.params.id])
+      : await pool.query(
+          'DELETE FROM orgs WHERE id = $1 AND owner_id = $2 RETURNING id',
+          [req.params.id, req.user.userId]
+        );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true });
   } catch (error) {
@@ -919,7 +1034,7 @@ app.delete('/api/orgs/:id', authenticateToken, async (req, res) => {
 });
 
 // Schedule an operation/event (members only).
-app.post('/api/orgs/:id/ops', authenticateToken, async (req, res) => {
+app.post('/api/orgs/:id/ops', authenticateToken, communityWriteLimit, async (req, res) => {
   try {
     const member = await pool.query(
       'SELECT 1 FROM org_members WHERE org_id = $1 AND user_id = $2',

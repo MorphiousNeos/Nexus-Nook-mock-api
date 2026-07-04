@@ -11,6 +11,7 @@ import {
   type ListingKind,
 } from '../../services/community'
 import CommunityNotice from './CommunityNotice'
+import ReportButton from './ReportButton'
 
 const KIND_TONE: Record<ListingKind, 'green' | 'purple' | 'amber'> = {
   sell: 'green',
@@ -205,16 +206,18 @@ export default function Marketplace() {
                       {l.author || 'Unknown'} · {relativeTime(l.createdAt)}
                     </p>
                   </div>
-                  {me && l.author === me && (
-                    <Button
-                      variant="danger"
-                      className="shrink-0"
-                      onClick={() => remove(l.id)}
-                      disabled={removingId === l.id}
-                    >
-                      {removingId === l.id ? 'Deleting…' : 'Delete'}
-                    </Button>
-                  )}
+                  <div className="flex shrink-0 items-center gap-3">
+                    {me && l.author !== me && <ReportButton kind="market" contentId={l.id} />}
+                    {me && l.author === me && (
+                      <Button
+                        variant="danger"
+                        onClick={() => remove(l.id)}
+                        disabled={removingId === l.id}
+                      >
+                        {removingId === l.id ? 'Deleting…' : 'Delete'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 {l.body && (
                   <p className="mt-2 whitespace-pre-wrap text-sm text-slate-300">

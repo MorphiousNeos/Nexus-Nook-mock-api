@@ -11,6 +11,7 @@ import {
   type FeedPost,
 } from '../../services/community'
 import CommunityNotice from './CommunityNotice'
+import ReportButton from './ReportButton'
 
 export default function CommunityFeed() {
   const { state } = useSession()
@@ -139,16 +140,18 @@ export default function CommunityFeed() {
                   <p className="text-xs text-slate-500">
                     {p.author || 'Unknown'} · {relativeTime(p.createdAt)}
                   </p>
-                  {me && p.author === me && (
-                    <Button
-                      variant="danger"
-                      className="shrink-0"
-                      onClick={() => remove(p.id)}
-                      disabled={removingId === p.id}
-                    >
-                      {removingId === p.id ? 'Deleting…' : 'Delete'}
-                    </Button>
-                  )}
+                  <div className="flex shrink-0 items-center gap-3">
+                    {me && p.author !== me && <ReportButton kind="post" contentId={p.id} />}
+                    {me && p.author === me && (
+                      <Button
+                        variant="danger"
+                        onClick={() => remove(p.id)}
+                        disabled={removingId === p.id}
+                      >
+                        {removingId === p.id ? 'Deleting…' : 'Delete'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 {p.body && (
                   <p className="mt-2 whitespace-pre-wrap text-sm text-slate-200">

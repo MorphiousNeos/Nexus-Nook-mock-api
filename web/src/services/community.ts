@@ -418,6 +418,22 @@ export async function deleteOp(orgId: string, eventId: string): Promise<void> {
   )
 }
 
+// --- Content reports --------------------------------------------------------
+
+export type ReportKind = 'lfg' | 'post' | 'market' | 'org' | 'op'
+
+/** Flag content for the moderators. Requires sign-in; rate-limited. */
+export async function reportContent(
+  kind: ReportKind,
+  contentId: string,
+  reason?: string,
+): Promise<void> {
+  await request('/api/report', {
+    method: 'POST',
+    body: JSON.stringify({ kind, contentId, reason: reason ?? '' }),
+  })
+}
+
 // --- presentation helpers -------------------------------------------------
 
 /** Render an ISO timestamp as a compact relative time, e.g. "3h ago". */

@@ -109,6 +109,17 @@ CREATE TABLE IF NOT EXISTS org_members (
 );
 CREATE INDEX IF NOT EXISTS idx_org_members_user ON org_members(user_id);
 
+-- Content reports (moderation queue)
+CREATE TABLE IF NOT EXISTS content_reports (
+  id SERIAL PRIMARY KEY,
+  reporter_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  kind VARCHAR(10) NOT NULL,
+  content_id INTEGER NOT NULL,
+  reason VARCHAR(500),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_reports_created ON content_reports(created_at DESC);
+
 -- Scheduled operations / events for an org
 CREATE TABLE IF NOT EXISTS ops_events (
   id SERIAL PRIMARY KEY,
