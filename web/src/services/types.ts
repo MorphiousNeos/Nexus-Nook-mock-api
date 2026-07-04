@@ -60,6 +60,8 @@ export interface AuthInput {
   displayName: string
   email: string
   rsiHandle?: string
+  /** Real account password. Required in API mode; unused in local demo mode. */
+  password?: string
 }
 
 /**

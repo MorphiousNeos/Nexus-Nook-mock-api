@@ -18,6 +18,28 @@ function uid(): string {
 }
 
 /**
+ * Called once at app start (see main.tsx). If the backend redirected here
+ * after a Discord OAuth flow, the URL hash carries `#/auth?token=…` (or
+ * `?error=…`). Stash the token in localStorage and scrub it from the URL so
+ * it never lingers in the address bar or browser history.
+ * Returns an error message to surface on the landing page, if any.
+ */
+export function captureOAuthRedirect(): string | null {
+  const hash = window.location.hash
+  if (!hash.startsWith('#/auth')) return null
+
+  const query = hash.includes('?') ? hash.slice(hash.indexOf('?') + 1) : ''
+  const params = new URLSearchParams(query)
+  const token = params.get('token')
+  const error = params.get('error')
+
+  if (token) localStorage.setItem(TOKEN_KEY, token)
+  // Scrub the sensitive hash whether we got a token or an error.
+  window.history.replaceState(null, '', window.location.pathname + '#/overview')
+  return token ? null : error
+}
+
+/**
  * Talks to the real backend described in docs/API.md.
  *
  * The backend has no first-class fleet/inventory endpoints; instead it
@@ -152,8 +174,10 @@ export class ApiStore implements Store {
   async enter(input: AuthInput): Promise<AppState> {
     const email = input.email.trim()
     const username = input.displayName.trim()
-    // Deterministic, non-secret passphrase to satisfy the required field.
-    const password = `demo:${email}`
+    const password = input.password ?? ''
+    if (password.length < 8) {
+      throw new Error('Please use a password of at least 8 characters.')
+    }
 
     type AuthResp = {
       token: string
@@ -167,11 +191,24 @@ export class ApiStore implements Store {
         body: JSON.stringify({ email, password }),
       })
     } catch {
-      // Not registered yet (or wrong creds) — register.
-      resp = await this.request<AuthResp>('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({ username, email, password }),
-      })
+      // No account with these credentials — try to create one. If the email
+      // is already registered the backend answers 409, which means the
+      // password above was simply wrong; say so clearly instead of leaking
+      // the confusing "User already exists" message.
+      try {
+        resp = await this.request<AuthResp>('/api/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ username, email, password }),
+        })
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : ''
+        if (/exists/i.test(msg)) {
+          throw new Error(
+            'That email already has an account but the password did not match.',
+          )
+        }
+        throw err
+      }
     }
 
     localStorage.setItem(TOKEN_KEY, resp.token)

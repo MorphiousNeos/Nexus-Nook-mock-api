@@ -35,6 +35,11 @@ CREATE TABLE IF NOT EXISTS user_progress (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Discord OAuth identity (idempotent backfill for existing installs)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_id VARCHAR(32);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_discord_id
+  ON users(discord_id) WHERE discord_id IS NOT NULL;
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);

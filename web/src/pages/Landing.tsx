@@ -4,11 +4,14 @@ import { useSession } from '../SessionContext'
 import { Button, Field } from '../components/ui'
 import DiscordButton from '../components/DiscordButton'
 
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '')
+
 export default function Landing() {
   const { enter, state, isDemo } = useSession()
   const navigate = useNavigate()
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [rsiHandle, setRsiHandle] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -17,6 +20,15 @@ export default function Landing() {
     if (state) navigate('/overview', { replace: true })
   }, [state, navigate])
 
+  // Surface a Discord sign-in failure stashed by main.tsx during boot.
+  useEffect(() => {
+    const stashed = sessionStorage.getItem('nexus-nook:oauth-error')
+    if (stashed) {
+      sessionStorage.removeItem('nexus-nook:oauth-error')
+      setError(stashed)
+    }
+  }, [])
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
@@ -24,9 +36,13 @@ export default function Landing() {
       setError('A display name and email are required.')
       return
     }
+    if (!isDemo && password.length < 8) {
+      setError('Please use a password of at least 8 characters.')
+      return
+    }
     setBusy(true)
     try {
-      await enter({ displayName, email, rsiHandle })
+      await enter({ displayName, email, rsiHandle, password })
       navigate('/overview', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not enter. Try again.')
@@ -121,6 +137,17 @@ export default function Landing() {
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
           />
+          {!isDemo && (
+            <Field
+              label="Password"
+              type="password"
+              placeholder="At least 8 characters"
+              hint="Your Nexus Nook password — never your RSI password."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+          )}
           <Field
             label="Public RSI handle (optional)"
             placeholder="e.g. StarHopper"
@@ -133,8 +160,33 @@ export default function Landing() {
             {busy ? 'Entering…' : 'Enter Nexus Nook'}
           </Button>
         </form>
+
+        {!isDemo && API_BASE && (
+          <>
+            <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-widest text-slate-600">
+              <span className="h-px flex-1 bg-slate-800" aria-hidden />
+              or
+              <span className="h-px flex-1 bg-slate-800" aria-hidden />
+            </div>
+            <a
+              href={`${API_BASE}/api/auth/discord`}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#5865F2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4752c4] focus:outline-none focus:ring-2 focus:ring-[#5865F2]/60"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden>
+                <path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
+              </svg>
+              Sign in with Discord
+            </a>
+            <p className="mt-2 text-center text-[11px] text-slate-500">
+              We only read your Discord display name — never your servers or messages.
+            </p>
+          </>
+        )}
+
         <p className="mt-4 text-center text-xs text-slate-500">
-          No password required. This is a free, fan-made tool.
+          {isDemo
+            ? 'No password required. This is a free, fan-made tool.'
+            : 'Free, fan-made tool. We never ask for your RSI password.'}
         </p>
       </section>
     </main>

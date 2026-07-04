@@ -58,3 +58,18 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         value: https://morphiousneos.github.io
+      # Full web-app URL (GitHub Pages project sites include a path segment).
+      # OAuth redirects land here.
+      - key: WEB_APP_URL
+        value: https://morphiousneos.github.io/Nexus-Nook-mock-api
+      # Discord OAuth ("Sign in with Discord"). Create an application at
+      # https://discord.com/developers/applications, add redirect URI
+      # https://nexusnook-api.onrender.com/api/auth/discord/callback, then
+      # paste the client ID + secret in the Render dashboard.
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+      # Comma-separated emails allowed to moderate (delete any community post).
+      - key: ADMIN_EMAILS
+        sync: false

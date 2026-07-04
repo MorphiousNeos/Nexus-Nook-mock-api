@@ -10,12 +10,17 @@ const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const axios = require('axios');
+const crypto = require('crypto');
 const { Pool } = require('pg');
 const Redis = require('ioredis');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Render (and most PaaS hosts) sit behind a reverse proxy; trust it so
+// req.protocol and client IPs (used by the rate limiter) are correct.
+app.set('trust proxy', 1);
 
 // =============================================================================
 // DATABASE SETUP
@@ -249,6 +254,170 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Server error during login' });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// DISCORD OAUTH
+// -----------------------------------------------------------------------------
+// Sign in with Discord (identify + email scopes only — we never touch guilds,
+// messages, or anything else). Configure with DISCORD_CLIENT_ID and
+// DISCORD_CLIENT_SECRET; the redirect URI registered in the Discord developer
+// portal must be <API_PUBLIC_URL>/api/auth/discord/callback.
+
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+const discordConfigured = !!(DISCORD_CLIENT_ID && DISCORD_CLIENT_SECRET);
+
+// Where to send the browser back to after auth. WEB_APP_URL is the full app
+// URL including any path (GitHub Pages project sites live under a subpath);
+// FRONTEND_URL is the bare origin used for CORS. Trailing slash normalized.
+const frontendUrl = () =>
+  (process.env.WEB_APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000').replace(
+    /\/$/,
+    '',
+  );
+
+const apiPublicUrl = (req) =>
+  (process.env.API_PUBLIC_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+
+// One-time OAuth state tokens. Redis when available, in-memory fallback so
+// local dev without Redis still works.
+const oauthStateFallback = new Map();
+async function storeOauthState(state) {
+  try {
+    await redis.set(`oauth:state:${state}`, '1', 'EX', 600);
+  } catch {
+    oauthStateFallback.set(state, Date.now());
+    // Prune anything older than 10 minutes.
+    for (const [k, t] of oauthStateFallback) {
+      if (Date.now() - t > 600000) oauthStateFallback.delete(k);
+    }
+  }
+}
+async function consumeOauthState(state) {
+  if (!state) return false;
+  try {
+    const key = `oauth:state:${state}`;
+    const found = await redis.get(key);
+    if (found) {
+      await redis.del(key);
+      return true;
+    }
+  } catch {
+    /* fall through to memory */
+  }
+  if (oauthStateFallback.has(state)) {
+    const fresh = Date.now() - oauthStateFallback.get(state) < 600000;
+    oauthStateFallback.delete(state);
+    return fresh;
+  }
+  return false;
+}
+
+const issueToken = (user) =>
+  jwt.sign({ userId: user.id, username: user.username }, process.env.JWT_SECRET, {
+    expiresIn: '7d',
+  });
+
+// Kick off the OAuth dance.
+app.get('/api/auth/discord', async (req, res) => {
+  if (!discordConfigured) {
+    // Full-page navigation lands here, so bounce back to the app with a
+    // readable message rather than a raw JSON error.
+    return res.redirect(
+      `${frontendUrl()}/#/auth?error=${encodeURIComponent(
+        'Discord sign-in is not configured on this server yet.',
+      )}`,
+    );
+  }
+  const state = crypto.randomBytes(24).toString('hex');
+  await storeOauthState(state);
+  const params = new URLSearchParams({
+    client_id: DISCORD_CLIENT_ID,
+    response_type: 'code',
+    redirect_uri: `${apiPublicUrl(req)}/api/auth/discord/callback`,
+    scope: 'identify email',
+    state,
+  });
+  res.redirect(`https://discord.com/oauth2/authorize?${params.toString()}`);
+});
+
+// Handle the callback: exchange code, upsert user, hand a JWT to the web app
+// via the URL hash (never a query string — hashes aren't sent to servers or
+// logged by intermediaries).
+app.get('/api/auth/discord/callback', async (req, res) => {
+  const fail = (msg) =>
+    res.redirect(`${frontendUrl()}/#/auth?error=${encodeURIComponent(msg)}`);
+
+  try {
+    if (!discordConfigured) return fail('Discord sign-in is not configured.');
+    const { code, state } = req.query;
+    if (!code) return fail('Discord did not return a sign-in code.');
+    if (!(await consumeOauthState(state))) {
+      return fail('Sign-in session expired — please try again.');
+    }
+
+    const tokenResp = await axios.post(
+      'https://discord.com/api/oauth2/token',
+      new URLSearchParams({
+        client_id: DISCORD_CLIENT_ID,
+        client_secret: DISCORD_CLIENT_SECRET,
+        grant_type: 'authorization_code',
+        code: String(code),
+        redirect_uri: `${apiPublicUrl(req)}/api/auth/discord/callback`,
+      }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 10000 }
+    );
+
+    const me = (
+      await axios.get('https://discord.com/api/users/@me', {
+        headers: { Authorization: `Bearer ${tokenResp.data.access_token}` },
+        timeout: 10000,
+      })
+    ).data;
+
+    const discordId = String(me.id);
+    const displayName = (me.global_name || me.username || 'Citizen').slice(0, 60);
+    const email = me.verified && me.email ? String(me.email).toLowerCase() : null;
+
+    // 1) Existing Discord-linked account.
+    let result = await pool.query('SELECT * FROM users WHERE discord_id = $1', [discordId]);
+    let user = result.rows[0];
+
+    // 2) Existing email account (verified email only) — link Discord to it.
+    if (!user && email) {
+      result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+      if (result.rows.length > 0) {
+        user = result.rows[0];
+        await pool.query('UPDATE users SET discord_id = $1, updated_at = NOW() WHERE id = $2', [
+          discordId,
+          user.id,
+        ]);
+      }
+    }
+
+    // 3) Brand new account. Username must be unique; suffix on collision.
+    if (!user) {
+      let username = displayName;
+      const clash = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);
+      if (clash.rows.length > 0) username = `${displayName}-${discordId.slice(-4)}`;
+      // Random unusable password — Discord is the credential for this account.
+      const password = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+      const placeholderEmail = email || `discord-${discordId}@users.nexusnook.invalid`;
+      result = await pool.query(
+        `INSERT INTO users (username, email, password, discord_id, created_at)
+         VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
+        [username, placeholderEmail, password, discordId]
+      );
+      user = result.rows[0];
+    }
+
+    const token = issueToken(user);
+    res.redirect(`${frontendUrl()}/#/auth?token=${encodeURIComponent(token)}`);
+  } catch (error) {
+    console.error('Discord OAuth error:', error?.response?.data || error.message);
+    return fail('Discord sign-in failed — please try again.');
   }
 });
 
