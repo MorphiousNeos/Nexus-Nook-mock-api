@@ -3,6 +3,7 @@ import type {
   AuthInput,
   BlueprintEntry,
   InventoryItem,
+  PlatformStatus,
   ServerStatus,
   Ship,
   Store,
@@ -161,5 +162,11 @@ export class LocalStore implements Store {
 
   async getServerStatus(): Promise<ServerStatus[]> {
     return sampleServers()
+  }
+
+  async getPlatformStatus(): Promise<PlatformStatus[] | null> {
+    // Live platform status needs the backend proxy (browsers can't fetch the
+    // RSI status page cross-origin). Demo mode simply doesn't show it.
+    return null
   }
 }

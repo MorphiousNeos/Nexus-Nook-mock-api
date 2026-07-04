@@ -13,6 +13,7 @@ import type {
   AuthInput,
   BlueprintEntry,
   InventoryItem,
+  PlatformStatus,
   ServerStatus,
   Ship,
   UserProfile,
@@ -33,6 +34,7 @@ interface SessionContextValue {
   updateBlueprint: (id: string, patch: Partial<Omit<BlueprintEntry, 'id'>>) => Promise<void>
   removeBlueprint: (id: string) => Promise<void>
   getServerStatus: () => Promise<ServerStatus[]>
+  getPlatformStatus: () => Promise<PlatformStatus[] | null>
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null)
@@ -132,6 +134,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   )
 
   const getServerStatus = useCallback(() => store.getServerStatus(), [store])
+  const getPlatformStatus = useCallback(() => store.getPlatformStatus(), [store])
 
   const value: SessionContextValue = {
     ready,
@@ -148,6 +151,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     updateBlueprint,
     removeBlueprint,
     getServerStatus,
+    getPlatformStatus,
   }
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

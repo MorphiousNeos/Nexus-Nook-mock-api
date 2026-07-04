@@ -48,6 +48,13 @@ export interface ServerStatus {
   capacity?: number
 }
 
+/** One system from CIG's official public status page (proxied by the backend). */
+export interface PlatformStatus {
+  name: string
+  status: ServerStatusLevel
+  category?: string
+}
+
 /** Everything the UI needs to render once a session is established. */
 export interface AppState {
   profile: UserProfile
@@ -95,4 +102,10 @@ export interface Store {
   removeBlueprint(id: string): Promise<BlueprintEntry[]>
 
   getServerStatus(): Promise<ServerStatus[]>
+
+  /**
+   * Official platform status from CIG's public status page, proxied by the
+   * backend. Null when unavailable (demo mode, or the feed is unreachable).
+   */
+  getPlatformStatus(): Promise<PlatformStatus[] | null>
 }

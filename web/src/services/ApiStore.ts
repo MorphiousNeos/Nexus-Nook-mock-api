@@ -3,6 +3,7 @@ import type {
   AuthInput,
   BlueprintEntry,
   InventoryItem,
+  PlatformStatus,
   ServerStatus,
   ServerStatusLevel,
   Ship,
@@ -316,6 +317,18 @@ export class ApiStore implements Store {
       latency: Number(s.latency ?? 0),
       capacity: s.capacity != null ? Number(s.capacity) : undefined,
     }))
+  }
+
+  async getPlatformStatus(): Promise<PlatformStatus[] | null> {
+    const data = await this.request<{ platform?: any[] | null }>('/api/servers/status')
+    if (!Array.isArray(data.platform) || data.platform.length === 0) return null
+    return data.platform
+      .map((p) => ({
+        name: String(p?.name ?? ''),
+        status: normalizeStatus(p?.status),
+        category: p?.category ? String(p.category) : undefined,
+      }))
+      .filter((p) => p.name)
   }
 }
 

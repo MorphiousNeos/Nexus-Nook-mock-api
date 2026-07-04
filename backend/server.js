@@ -589,13 +589,61 @@ app.get('/api/user/load', authenticateToken, async (req, res) => {
 // -----------------------------------------------------------------------------
 
 // Get live server status (mock data, cached 30s)
+// Map RSI/cstate status strings onto our four levels.
+const mapRsiStatus = (raw) => {
+  const s = String(raw || '').toLowerCase();
+  if (/(ok|operational|online)/.test(s)) return 'online';
+  if (/(maintenance)/.test(s)) return 'maintenance';
+  if (/(down|major|outage)/.test(s)) return 'offline';
+  if (/(notice|degraded|disrupted|partial)/.test(s)) return 'degraded';
+  return 'online';
+};
+
+// Pull the official public status feed (status.robertsspaceindustries.com is
+// a static status page that publishes index.json — the same document the
+// status site itself renders). Read-only public data; cached 5 minutes.
+async function fetchRsiPlatformStatus() {
+  const resp = await axios.get('https://status.robertsspaceindustries.com/index.json', {
+    timeout: 10000,
+    headers: { Accept: 'application/json', 'User-Agent': 'NexusNook/1.0 (unofficial companion app)' },
+  });
+  const body = resp.data || {};
+  // Tolerate both flat and cState-nested layouts.
+  const systems = Array.isArray(body.systems)
+    ? body.systems
+    : Array.isArray(body.cState?.systems)
+      ? body.cState.systems
+      : [];
+  const platform = systems
+    .map((sys) => ({
+      name: String(sys?.name || '').slice(0, 80),
+      status: mapRsiStatus(sys?.status),
+      category: sys?.category ? String(sys.category).slice(0, 80) : undefined,
+    }))
+    .filter((sys) => sys.name);
+  if (platform.length === 0) throw new Error('RSI status feed had no systems');
+  return platform;
+}
+
 app.get('/api/servers/status', async (req, res) => {
   try {
-    const cached = await redis.get('server:status');
+    const cached = await redis.get('server:status:v2').catch(() => null);
     if (cached) {
-      return res.json({ servers: JSON.parse(cached) });
+      return res.json(JSON.parse(cached));
     }
 
+    // Official platform status (real data, gracefully absent on failure).
+    let platform = null;
+    let platformSource = 'unavailable';
+    try {
+      platform = await fetchRsiPlatformStatus();
+      platformSource = 'rsi';
+    } catch (err) {
+      console.error('RSI status fetch failed:', err.message);
+    }
+
+    // Regional shard sample — CIG publishes no per-shard population/latency
+    // numbers, so these are illustrative and labeled as such in the UI.
     const servers = [
       { region: 'US East', status: 'Online', players: Math.floor(Math.random() * 700), latency: 35, capacity: 700 },
       { region: 'US West', status: 'Online', players: Math.floor(Math.random() * 700), latency: 52, capacity: 700 },
@@ -604,8 +652,9 @@ app.get('/api/servers/status', async (req, res) => {
       { region: 'AU', status: 'Online', players: Math.floor(Math.random() * 700), latency: 180, capacity: 700 },
     ];
 
-    await redis.setex('server:status', 30, JSON.stringify(servers));
-    res.json({ servers });
+    const payload = { servers, platform, platformSource, fetchedAt: new Date().toISOString() };
+    await redis.setex('server:status:v2', 300, JSON.stringify(payload)).catch(() => {});
+    res.json(payload);
   } catch (error) {
     console.error('Server status error:', error);
     res.status(500).json({ error: 'Failed to fetch server status' });
