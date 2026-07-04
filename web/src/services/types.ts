@@ -89,6 +89,9 @@ export interface Store {
   /** Clear the active session. */
   logout(): Promise<void>
 
+  /** Permanently delete the account and all its data, then clear the session. */
+  deleteAccount(): Promise<void>
+
   updateProfile(patch: Partial<Omit<UserProfile, 'id'>>): Promise<UserProfile>
 
   addShip(ship: Omit<Ship, 'id'>): Promise<Ship[]>

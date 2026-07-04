@@ -25,6 +25,7 @@ interface SessionContextValue {
   state: AppState | null
   enter: (input: AuthInput) => Promise<void>
   logout: () => Promise<void>
+  deleteAccount: () => Promise<void>
   updateProfile: (patch: Partial<Omit<UserProfile, 'id'>>) => Promise<void>
   addShip: (ship: Omit<Ship, 'id'>) => Promise<void>
   removeShip: (id: string) => Promise<void>
@@ -66,6 +67,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await store.logout()
+    setState(null)
+  }, [store])
+
+  const deleteAccount = useCallback(async () => {
+    await store.deleteAccount()
     setState(null)
   }, [store])
 
@@ -142,6 +148,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     state,
     enter,
     logout,
+    deleteAccount,
     updateProfile,
     addShip,
     removeShip,

@@ -3,6 +3,7 @@ import { SessionProvider, useSession } from './SessionContext'
 import Footer from './components/Footer'
 import AppShell from './components/AppShell'
 import Landing from './pages/Landing'
+import PrivacyPage from './pages/PrivacyPage'
 import OverviewPage from './pages/app/OverviewPage'
 import FleetPage from './pages/app/FleetPage'
 import TradePage from './pages/app/TradePage'
@@ -36,6 +37,7 @@ function Layout() {
           // Logged out: always the Landing page; any deep link falls through to it.
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         ) : (
@@ -53,6 +55,7 @@ function Layout() {
               <Route path="servers" element={<ServersPage />} />
               <Route path="profile" element={<ProfilePage />} />
             </Route>
+            <Route path="privacy" element={<PrivacyPage />} />
             {/* Unknown authed route → Overview */}
             <Route path="*" element={<Navigate to="/overview" replace />} />
           </Routes>

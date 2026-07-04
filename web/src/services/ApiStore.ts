@@ -238,6 +238,12 @@ export class ApiStore implements Store {
     localStorage.removeItem(CACHE_KEY)
   }
 
+  async deleteAccount(): Promise<void> {
+    await this.request('/api/user', { method: 'DELETE' })
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(CACHE_KEY)
+  }
+
   async updateProfile(patch: Partial<Omit<UserProfile, 'id'>>): Promise<UserProfile> {
     const blob = this.cache()
     if (patch.rsiHandle !== undefined) {

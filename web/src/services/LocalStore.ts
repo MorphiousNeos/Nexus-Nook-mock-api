@@ -92,6 +92,11 @@ export class LocalStore implements Store {
     localStorage.removeItem(STORAGE_KEY)
   }
 
+  async deleteAccount(): Promise<void> {
+    // Demo data lives entirely in this browser; deleting it is the deletion.
+    localStorage.removeItem(STORAGE_KEY)
+  }
+
   private mutate(fn: (s: AppState) => void): AppState {
     const state = loadRaw()
     if (!state) throw new Error('No active session')

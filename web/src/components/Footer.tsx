@@ -15,7 +15,10 @@ export default function Footer() {
         by you.
       </p>
       <p className="mt-3 text-slate-600">
-        &copy; 2026 Cole Houston. All Rights Reserved.
+        &copy; 2026 Cole Houston. All Rights Reserved. ·{' '}
+        <a href="#/privacy" className="underline hover:text-slate-400">
+          Privacy Policy
+        </a>
       </p>
     </footer>
   )

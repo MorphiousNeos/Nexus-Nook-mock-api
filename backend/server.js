@@ -545,6 +545,25 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
   }
 });
 
+// Delete the signed-in user's account and all their data. Every user-owned
+// table references users(id) with ON DELETE CASCADE (reports keep the row but
+// null the reporter), so a single delete removes ships, progress, posts,
+// listings, org memberships, and orgs they own.
+app.delete('/api/user', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [
+      req.user.userId,
+    ]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Account delete error:', error);
+    res.status(500).json({ error: 'Failed to delete account' });
+  }
+});
+
 // Save user progress
 app.post('/api/user/save', authenticateToken, async (req, res) => {
   try {
