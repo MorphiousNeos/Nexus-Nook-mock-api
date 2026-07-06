@@ -42,6 +42,12 @@ export const NAV_ITEMS: NavItem[] = [
     description: 'Track crafting blueprints you want, have found, or have crafted.',
   },
   {
+    to: '/hauling',
+    label: 'Hauling',
+    icon: '🚚',
+    description: 'Stack cargo contracts into one efficient route and check off stops.',
+  },
+  {
     to: '/org',
     label: 'Org',
     icon: '🌌',

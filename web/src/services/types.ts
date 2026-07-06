@@ -36,6 +36,29 @@ export interface BlueprintEntry {
   notes?: string
 }
 
+/** One pickup or dropoff leg of a hauling contract. */
+export interface HaulingStop {
+  id: string
+  kind: 'pickup' | 'dropoff'
+  location: string
+  commodity: string
+  /** Cargo units for this stop. */
+  scu: number
+  done: boolean
+}
+
+export type HaulingStatus = 'active' | 'delivered'
+
+export interface HaulingContract {
+  id: string
+  name: string
+  /** Contract payout in aUEC. */
+  reward?: number
+  notes?: string
+  status: HaulingStatus
+  stops: HaulingStop[]
+}
+
 export type ServerStatusLevel = 'online' | 'degraded' | 'maintenance' | 'offline'
 
 export interface ServerStatus {
@@ -61,6 +84,7 @@ export interface AppState {
   fleet: Ship[]
   inventory: InventoryItem[]
   blueprints: BlueprintEntry[]
+  hauling: HaulingContract[]
 }
 
 export interface AuthInput {
@@ -103,6 +127,10 @@ export interface Store {
   addBlueprint(entry: Omit<BlueprintEntry, 'id'>): Promise<BlueprintEntry[]>
   updateBlueprint(id: string, patch: Partial<Omit<BlueprintEntry, 'id'>>): Promise<BlueprintEntry[]>
   removeBlueprint(id: string): Promise<BlueprintEntry[]>
+
+  addHauling(contract: Omit<HaulingContract, 'id'>): Promise<HaulingContract[]>
+  updateHauling(id: string, patch: Partial<Omit<HaulingContract, 'id'>>): Promise<HaulingContract[]>
+  removeHauling(id: string): Promise<HaulingContract[]>
 
   getServerStatus(): Promise<ServerStatus[]>
 

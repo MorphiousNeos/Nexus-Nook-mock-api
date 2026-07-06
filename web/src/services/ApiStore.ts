@@ -2,6 +2,7 @@ import type {
   AppState,
   AuthInput,
   BlueprintEntry,
+  HaulingContract,
   InventoryItem,
   PlatformStatus,
   ServerStatus,
@@ -48,11 +49,9 @@ export function captureOAuthRedirect(): string | null {
  * We store the user-owned fleet/inventory/profile-extras inside that blob,
  * which keeps the same Store interface the UI relies on.
  *
- * Note on auth: docs/API.md requires a password for register/login. Since the
- * web UI intentionally never collects an RSI password (and only collects a
- * display name + email for the demo), we derive a deterministic local
- * passphrase from the email so the same visitor can re-enter. This is NOT a
- * security feature — it just satisfies the contract's required field.
+ * Auth: email+password (bcrypt server-side) or a Discord OAuth token captured
+ * from the redirect hash at boot (see captureOAuthRedirect). The user's RSI
+ * password is never involved anywhere.
  */
 export class ApiStore implements Store {
   readonly isDemo = false
@@ -90,24 +89,32 @@ export class ApiStore implements Store {
 
   // --- gameData blob helpers (fleet/inventory/profile extras) ---
 
-  private cache(): { fleet: Ship[]; inventory: InventoryItem[]; blueprints: BlueprintEntry[]; rsiHandle: string } {
+  private cache(): {
+    fleet: Ship[]
+    inventory: InventoryItem[]
+    blueprints: BlueprintEntry[]
+    hauling: HaulingContract[]
+    rsiHandle: string
+  } {
     try {
       const raw = localStorage.getItem(CACHE_KEY)
       if (raw) {
         const parsed = JSON.parse(raw)
         if (!Array.isArray(parsed.blueprints)) parsed.blueprints = []
+        if (!Array.isArray(parsed.hauling)) parsed.hauling = []
         return parsed
       }
     } catch {
       /* ignore */
     }
-    return { fleet: [], inventory: [], blueprints: [], rsiHandle: '' }
+    return { fleet: [], inventory: [], blueprints: [], hauling: [], rsiHandle: '' }
   }
 
   private async saveBlob(blob: {
     fleet: Ship[]
     inventory: InventoryItem[]
     blueprints: BlueprintEntry[]
+    hauling: HaulingContract[]
     rsiHandle: string
   }): Promise<void> {
     localStorage.setItem(CACHE_KEY, JSON.stringify(blob))
@@ -121,6 +128,7 @@ export class ApiStore implements Store {
     fleet: Ship[]
     inventory: InventoryItem[]
     blueprints: BlueprintEntry[]
+    hauling: HaulingContract[]
     rsiHandle: string
   }> {
     const data = await this.request<{ gameData: any }>('/api/user/load')
@@ -129,6 +137,7 @@ export class ApiStore implements Store {
       fleet: Array.isArray(blob.fleet) ? blob.fleet : [],
       inventory: Array.isArray(blob.inventory) ? blob.inventory : [],
       blueprints: Array.isArray(blob.blueprints) ? blob.blueprints : [],
+      hauling: Array.isArray(blob.hauling) ? blob.hauling : [],
       rsiHandle: typeof blob.rsiHandle === 'string' ? blob.rsiHandle : '',
     }
     localStorage.setItem(CACHE_KEY, JSON.stringify(normalized))
@@ -151,6 +160,7 @@ export class ApiStore implements Store {
       fleet: blob.fleet,
       inventory: blob.inventory,
       blueprints: blob.blueprints,
+      hauling: blob.hauling,
     }
   }
 
@@ -227,6 +237,7 @@ export class ApiStore implements Store {
         fleet: state.fleet,
         inventory: state.inventory,
         blueprints: state.blueprints,
+        hauling: state.hauling,
         rsiHandle: state.profile.rsiHandle,
       })
     }
@@ -312,6 +323,31 @@ export class ApiStore implements Store {
     blob.blueprints = blob.blueprints.filter((x) => x.id !== id)
     await this.saveBlob(blob)
     return blob.blueprints
+  }
+
+  async addHauling(contract: Omit<HaulingContract, 'id'>): Promise<HaulingContract[]> {
+    const blob = this.cache()
+    blob.hauling = [...blob.hauling, { ...contract, id: uid() }]
+    await this.saveBlob(blob)
+    return blob.hauling
+  }
+
+  async updateHauling(
+    id: string,
+    patch: Partial<Omit<HaulingContract, 'id'>>,
+  ): Promise<HaulingContract[]> {
+    const blob = this.cache()
+    const idx = blob.hauling.findIndex((x) => x.id === id)
+    if (idx !== -1) blob.hauling[idx] = { ...blob.hauling[idx], ...patch }
+    await this.saveBlob(blob)
+    return blob.hauling
+  }
+
+  async removeHauling(id: string): Promise<HaulingContract[]> {
+    const blob = this.cache()
+    blob.hauling = blob.hauling.filter((x) => x.id !== id)
+    await this.saveBlob(blob)
+    return blob.hauling
   }
 
   async getServerStatus(): Promise<ServerStatus[]> {

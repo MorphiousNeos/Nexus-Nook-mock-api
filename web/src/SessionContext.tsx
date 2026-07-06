@@ -12,6 +12,7 @@ import type {
   AppState,
   AuthInput,
   BlueprintEntry,
+  HaulingContract,
   InventoryItem,
   PlatformStatus,
   ServerStatus,
@@ -34,6 +35,9 @@ interface SessionContextValue {
   addBlueprint: (entry: Omit<BlueprintEntry, 'id'>) => Promise<void>
   updateBlueprint: (id: string, patch: Partial<Omit<BlueprintEntry, 'id'>>) => Promise<void>
   removeBlueprint: (id: string) => Promise<void>
+  addHauling: (contract: Omit<HaulingContract, 'id'>) => Promise<void>
+  updateHauling: (id: string, patch: Partial<Omit<HaulingContract, 'id'>>) => Promise<void>
+  removeHauling: (id: string) => Promise<void>
   getServerStatus: () => Promise<ServerStatus[]>
   getPlatformStatus: () => Promise<PlatformStatus[] | null>
 }
@@ -139,6 +143,30 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [store],
   )
 
+  const addHauling = useCallback(
+    async (contract: Omit<HaulingContract, 'id'>) => {
+      const hauling = await store.addHauling(contract)
+      setState((prev) => (prev ? { ...prev, hauling } : prev))
+    },
+    [store],
+  )
+
+  const updateHauling = useCallback(
+    async (id: string, patch: Partial<Omit<HaulingContract, 'id'>>) => {
+      const hauling = await store.updateHauling(id, patch)
+      setState((prev) => (prev ? { ...prev, hauling } : prev))
+    },
+    [store],
+  )
+
+  const removeHauling = useCallback(
+    async (id: string) => {
+      const hauling = await store.removeHauling(id)
+      setState((prev) => (prev ? { ...prev, hauling } : prev))
+    },
+    [store],
+  )
+
   const getServerStatus = useCallback(() => store.getServerStatus(), [store])
   const getPlatformStatus = useCallback(() => store.getPlatformStatus(), [store])
 
@@ -157,6 +185,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     addBlueprint,
     updateBlueprint,
     removeBlueprint,
+    addHauling,
+    updateHauling,
+    removeHauling,
     getServerStatus,
     getPlatformStatus,
   }

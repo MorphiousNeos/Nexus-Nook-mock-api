@@ -2,6 +2,7 @@ import type {
   AppState,
   AuthInput,
   BlueprintEntry,
+  HaulingContract,
   InventoryItem,
   PlatformStatus,
   ServerStatus,
@@ -21,8 +22,9 @@ function loadRaw(): AppState | null {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as AppState
-    // Normalize missing blueprints field for sessions stored before this feature.
+    // Normalize fields added after a session was first stored.
     if (!Array.isArray(parsed.blueprints)) parsed.blueprints = []
+    if (!Array.isArray(parsed.hauling)) parsed.hauling = []
     return parsed
   } catch {
     return null
@@ -80,6 +82,7 @@ export class LocalStore implements Store {
       fleet: [],
       inventory: [],
       blueprints: [],
+      hauling: [],
     }
     persist(state)
     return state
@@ -163,6 +166,31 @@ export class LocalStore implements Store {
       s.blueprints = s.blueprints.filter((x) => x.id !== id)
     })
     return state.blueprints
+  }
+
+  async addHauling(contract: Omit<HaulingContract, 'id'>): Promise<HaulingContract[]> {
+    const state = this.mutate((s) => {
+      s.hauling.push({ ...contract, id: uid() })
+    })
+    return state.hauling
+  }
+
+  async updateHauling(
+    id: string,
+    patch: Partial<Omit<HaulingContract, 'id'>>,
+  ): Promise<HaulingContract[]> {
+    const state = this.mutate((s) => {
+      const idx = s.hauling.findIndex((x) => x.id === id)
+      if (idx !== -1) s.hauling[idx] = { ...s.hauling[idx], ...patch }
+    })
+    return state.hauling
+  }
+
+  async removeHauling(id: string): Promise<HaulingContract[]> {
+    const state = this.mutate((s) => {
+      s.hauling = s.hauling.filter((x) => x.id !== id)
+    })
+    return state.hauling
   }
 
   async getServerStatus(): Promise<ServerStatus[]> {
