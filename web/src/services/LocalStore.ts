@@ -4,6 +4,7 @@ import type {
   BlueprintEntry,
   HaulingContract,
   InventoryItem,
+  OpsSession,
   PlatformStatus,
   ServerStatus,
   Ship,
@@ -25,6 +26,7 @@ function loadRaw(): AppState | null {
     // Normalize fields added after a session was first stored.
     if (!Array.isArray(parsed.blueprints)) parsed.blueprints = []
     if (!Array.isArray(parsed.hauling)) parsed.hauling = []
+    if (!Array.isArray(parsed.opsSessions)) parsed.opsSessions = []
     return parsed
   } catch {
     return null
@@ -83,6 +85,7 @@ export class LocalStore implements Store {
       inventory: [],
       blueprints: [],
       hauling: [],
+      opsSessions: [],
     }
     persist(state)
     return state
@@ -191,6 +194,31 @@ export class LocalStore implements Store {
       s.hauling = s.hauling.filter((x) => x.id !== id)
     })
     return state.hauling
+  }
+
+  async addOpsSession(session: Omit<OpsSession, 'id'>): Promise<OpsSession[]> {
+    const state = this.mutate((s) => {
+      s.opsSessions.push({ ...session, id: uid() })
+    })
+    return state.opsSessions
+  }
+
+  async updateOpsSession(
+    id: string,
+    patch: Partial<Omit<OpsSession, 'id'>>,
+  ): Promise<OpsSession[]> {
+    const state = this.mutate((s) => {
+      const idx = s.opsSessions.findIndex((x) => x.id === id)
+      if (idx !== -1) s.opsSessions[idx] = { ...s.opsSessions[idx], ...patch }
+    })
+    return state.opsSessions
+  }
+
+  async removeOpsSession(id: string): Promise<OpsSession[]> {
+    const state = this.mutate((s) => {
+      s.opsSessions = s.opsSessions.filter((x) => x.id !== id)
+    })
+    return state.opsSessions
   }
 
   async getServerStatus(): Promise<ServerStatus[]> {

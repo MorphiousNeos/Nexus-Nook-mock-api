@@ -4,6 +4,7 @@ import type {
   BlueprintEntry,
   HaulingContract,
   InventoryItem,
+  OpsSession,
   PlatformStatus,
   ServerStatus,
   ServerStatusLevel,
@@ -94,6 +95,7 @@ export class ApiStore implements Store {
     inventory: InventoryItem[]
     blueprints: BlueprintEntry[]
     hauling: HaulingContract[]
+    opsSessions: OpsSession[]
     rsiHandle: string
   } {
     try {
@@ -102,12 +104,13 @@ export class ApiStore implements Store {
         const parsed = JSON.parse(raw)
         if (!Array.isArray(parsed.blueprints)) parsed.blueprints = []
         if (!Array.isArray(parsed.hauling)) parsed.hauling = []
+        if (!Array.isArray(parsed.opsSessions)) parsed.opsSessions = []
         return parsed
       }
     } catch {
       /* ignore */
     }
-    return { fleet: [], inventory: [], blueprints: [], hauling: [], rsiHandle: '' }
+    return { fleet: [], inventory: [], blueprints: [], hauling: [], opsSessions: [], rsiHandle: '' }
   }
 
   private async saveBlob(blob: {
@@ -115,6 +118,7 @@ export class ApiStore implements Store {
     inventory: InventoryItem[]
     blueprints: BlueprintEntry[]
     hauling: HaulingContract[]
+    opsSessions: OpsSession[]
     rsiHandle: string
   }): Promise<void> {
     localStorage.setItem(CACHE_KEY, JSON.stringify(blob))
@@ -129,6 +133,7 @@ export class ApiStore implements Store {
     inventory: InventoryItem[]
     blueprints: BlueprintEntry[]
     hauling: HaulingContract[]
+    opsSessions: OpsSession[]
     rsiHandle: string
   }> {
     const data = await this.request<{ gameData: any }>('/api/user/load')
@@ -138,6 +143,7 @@ export class ApiStore implements Store {
       inventory: Array.isArray(blob.inventory) ? blob.inventory : [],
       blueprints: Array.isArray(blob.blueprints) ? blob.blueprints : [],
       hauling: Array.isArray(blob.hauling) ? blob.hauling : [],
+      opsSessions: Array.isArray(blob.opsSessions) ? blob.opsSessions : [],
       rsiHandle: typeof blob.rsiHandle === 'string' ? blob.rsiHandle : '',
     }
     localStorage.setItem(CACHE_KEY, JSON.stringify(normalized))
@@ -161,6 +167,7 @@ export class ApiStore implements Store {
       inventory: blob.inventory,
       blueprints: blob.blueprints,
       hauling: blob.hauling,
+      opsSessions: blob.opsSessions,
     }
   }
 
@@ -238,6 +245,7 @@ export class ApiStore implements Store {
         inventory: state.inventory,
         blueprints: state.blueprints,
         hauling: state.hauling,
+        opsSessions: state.opsSessions,
         rsiHandle: state.profile.rsiHandle,
       })
     }
@@ -348,6 +356,31 @@ export class ApiStore implements Store {
     blob.hauling = blob.hauling.filter((x) => x.id !== id)
     await this.saveBlob(blob)
     return blob.hauling
+  }
+
+  async addOpsSession(session: Omit<OpsSession, 'id'>): Promise<OpsSession[]> {
+    const blob = this.cache()
+    blob.opsSessions = [...blob.opsSessions, { ...session, id: uid() }]
+    await this.saveBlob(blob)
+    return blob.opsSessions
+  }
+
+  async updateOpsSession(
+    id: string,
+    patch: Partial<Omit<OpsSession, 'id'>>,
+  ): Promise<OpsSession[]> {
+    const blob = this.cache()
+    const idx = blob.opsSessions.findIndex((x) => x.id === id)
+    if (idx !== -1) blob.opsSessions[idx] = { ...blob.opsSessions[idx], ...patch }
+    await this.saveBlob(blob)
+    return blob.opsSessions
+  }
+
+  async removeOpsSession(id: string): Promise<OpsSession[]> {
+    const blob = this.cache()
+    blob.opsSessions = blob.opsSessions.filter((x) => x.id !== id)
+    await this.saveBlob(blob)
+    return blob.opsSessions
   }
 
   async getServerStatus(): Promise<ServerStatus[]> {

@@ -48,6 +48,12 @@ export const NAV_ITEMS: NavItem[] = [
     description: 'Stack cargo contracts into one efficient route and check off stops.',
   },
   {
+    to: '/mining',
+    label: 'Mining Ops',
+    icon: '⛏️',
+    description: 'Run crew sessions, log the take, and split profits fairly.',
+  },
+  {
     to: '/org',
     label: 'Org',
     icon: '🌌',

@@ -73,6 +73,34 @@ export interface HaulingContract {
   stops: HaulingStop[]
 }
 
+/** One crew member's share weight in an ops session. */
+export interface CrewShare {
+  id: string
+  name: string
+  /** Relative share weight (1 = a normal cut, 2 = double, 0.5 = half). */
+  shares: number
+}
+
+/** One income (+) or expense (−) line in an ops session ledger. */
+export interface OpsLedgerEntry {
+  id: string
+  label: string
+  /** aUEC. Positive = income (a sold haul), negative = expense (fees, fuel). */
+  amount: number
+}
+
+export type OpsActivity = 'mining' | 'salvage' | 'cargo' | 'other'
+
+/** A collaborative earnings session (mining run, salvage op…) with splits. */
+export interface OpsSession {
+  id: string
+  name: string
+  activity: OpsActivity
+  crew: CrewShare[]
+  entries: OpsLedgerEntry[]
+  closed?: boolean
+}
+
 export type ServerStatusLevel = 'online' | 'degraded' | 'maintenance' | 'offline'
 
 export interface ServerStatus {
@@ -99,6 +127,7 @@ export interface AppState {
   inventory: InventoryItem[]
   blueprints: BlueprintEntry[]
   hauling: HaulingContract[]
+  opsSessions: OpsSession[]
 }
 
 export interface AuthInput {
@@ -145,6 +174,10 @@ export interface Store {
   addHauling(contract: Omit<HaulingContract, 'id'>): Promise<HaulingContract[]>
   updateHauling(id: string, patch: Partial<Omit<HaulingContract, 'id'>>): Promise<HaulingContract[]>
   removeHauling(id: string): Promise<HaulingContract[]>
+
+  addOpsSession(session: Omit<OpsSession, 'id'>): Promise<OpsSession[]>
+  updateOpsSession(id: string, patch: Partial<Omit<OpsSession, 'id'>>): Promise<OpsSession[]>
+  removeOpsSession(id: string): Promise<OpsSession[]>
 
   getServerStatus(): Promise<ServerStatus[]>
 
