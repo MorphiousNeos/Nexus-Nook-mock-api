@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Badge, Button, Card } from '../../components/ui'
+import { getExecAnchor, reportExecOpen } from '../../services/community'
 
 // Community-measured Executive Hangar cycle (stable since Alpha 4.0.1):
 //   120 min "charging" (closed; 5 lights turn red -> green, one every 24 min)
@@ -74,18 +75,40 @@ const PHASE_STYLE: Record<Phase, { label: string; tone: 'green' | 'red' | 'slate
 }
 
 export default function ExecHangarCard() {
-  const [anchor, setAnchor] = useState<number | null>(() => {
+  const [localAnchor, setLocalAnchor] = useState<number | null>(() => {
     const raw = localStorage.getItem(ANCHOR_KEY)
     const n = raw ? Number(raw) : NaN
     return Number.isFinite(n) ? n : null
   })
+  const [communityAnchor, setCommunityAnchor] = useState<number | null>(null)
+  const [communityReports, setCommunityReports] = useState(0)
   const [now, setNow] = useState(() => Date.now())
   const [showGuide, setShowGuide] = useState(false)
+  const [shared, setShared] = useState(false)
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
   }, [])
+
+  // Pull the community-blended anchor (built from Nook users' own reports).
+  useEffect(() => {
+    let active = true
+    getExecAnchor().then((res) => {
+      if (!active || !res || res.anchor === null) return
+      setCommunityAnchor(res.anchor)
+      setCommunityReports(res.observations)
+    })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  // A local calibration wins (the player is looking at the lights); otherwise
+  // fall back to the shared community anchor.
+  const anchor = localAnchor ?? communityAnchor
+  const source: 'local' | 'community' | null =
+    localAnchor !== null ? 'local' : communityAnchor !== null ? 'community' : null
 
   const info = useMemo(
     () => (anchor !== null ? computePhase(anchor, now) : null),
@@ -95,14 +118,25 @@ export default function ExecHangarCard() {
   function calibrate(greenStartMsAgo: number) {
     const value = Date.now() - greenStartMsAgo
     localStorage.setItem(ANCHOR_KEY, String(value))
-    setAnchor(value)
+    setLocalAnchor(value)
+    // Share the observation so every Nook user's timer syncs (sign-in only;
+    // failures are silent — the local timer still works).
+    reportExecOpen(Math.round(greenStartMsAgo / 60000))
+      .then(() => setShared(true))
+      .catch(() => {})
   }
 
   function nudge(deltaMs: number) {
-    if (anchor === null) return
-    const value = anchor + deltaMs
+    const base = anchor
+    if (base === null) return
+    const value = base + deltaMs
     localStorage.setItem(ANCHOR_KEY, String(value))
-    setAnchor(value)
+    setLocalAnchor(value)
+  }
+
+  function useCommunity() {
+    localStorage.removeItem(ANCHOR_KEY)
+    setLocalAnchor(null)
   }
 
   const style = info ? PHASE_STYLE[info.phase] : null
@@ -117,9 +151,24 @@ export default function ExecHangarCard() {
       {info && style ? (
         <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Badge tone={style.tone} dot>
-              {style.label}
-            </Badge>
+            <span className="flex items-center gap-2">
+              <Badge tone={style.tone} dot>
+                {style.label}
+              </Badge>
+              {source === 'community' && (
+                <span
+                  title={`Blended from ${communityReports} player report${communityReports === 1 ? '' : 's'}`}
+                  className="rounded bg-blue-950/60 px-1.5 py-0.5 text-[10px] font-medium text-blue-300"
+                >
+                  Community-calibrated · {communityReports}
+                </span>
+              )}
+              {source === 'local' && shared && (
+                <span className="rounded bg-emerald-950/60 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
+                  Shared with the Nook ✓
+                </span>
+              )}
+            </span>
             {/* The five hangar status lights */}
             <div className="flex items-center gap-1.5" title="Hangar status lights">
               {[0, 1, 2, 3, 4].map((i) => {
@@ -182,6 +231,15 @@ export default function ExecHangarCard() {
             >
               It just opened — resync
             </button>
+            {source === 'local' && communityAnchor !== null && (
+              <button
+                type="button"
+                onClick={useCommunity}
+                className="rounded border border-blue-800 px-2 py-0.5 text-blue-300 hover:bg-blue-950/40"
+              >
+                Use community calibration
+              </button>
+            )}
           </div>
         </div>
       ) : (
@@ -189,8 +247,9 @@ export default function ExecHangarCard() {
           <p className="text-sm font-medium text-amber-300">One-time calibration needed</p>
           <p className="mt-1 text-xs text-slate-400">
             The cycle is the same on every server, but its clock resets with each game
-            patch. Tell the timer where the cycle is right now — either from in-game
-            lights or by glancing at a community tracker once:
+            patch. Tell the timer where the cycle is right now — from the in-game lights
+            or a glance at a community tracker. If you're signed in, your report
+            calibrates the timer for <em>every</em> Nook user automatically.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button onClick={() => calibrate(0)}>🟢 It just OPENED (all lights green)</Button>

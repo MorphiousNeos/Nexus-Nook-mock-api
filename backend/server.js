@@ -681,6 +681,83 @@ app.get('/api/servers/status', async (req, res) => {
 });
 
 // =============================================================================
+// EVENT TIMER CALIBRATION (Executive Hangar)
+// =============================================================================
+// The Executive Hangar cycle is a public game fact: 185 minutes, globally
+// synchronized (120m charging / 60m open / 5m blackout). What shifts after
+// every patch is the anchor — when an OPEN phase starts. Signed-in players
+// report "it just opened"; we blend recent reports with a circular mean over
+// the cycle and serve one shared anchor to everyone. Entirely our own
+// crowd-sourced data — nothing scraped from anyone.
+
+const EXEC_CYCLE_MS = 185 * 60 * 1000;
+const EXEC_OBS_MAX_AGE_DAYS = 14; // patches reset the anchor; old reports are noise
+
+// Report an open-phase start. Optional minutesAgo (0-185) backdates the
+// observation ("it opened about 10 minutes ago").
+app.post('/api/timers/exec/observe', authenticateToken, communityWriteLimit, async (req, res) => {
+  try {
+    const minutesAgo = Math.max(0, Math.min(185, Number(req.body.minutesAgo) || 0));
+    const observedAt = new Date(Date.now() - minutesAgo * 60000);
+    await pool.query(
+      `INSERT INTO timer_observations (user_id, kind, observed_at) VALUES ($1, 'exec_hangar', $2)`,
+      [req.user.userId, observedAt]
+    );
+    await redis.del('timers:exec').catch(() => {});
+    res.status(201).json({ success: true });
+  } catch (error) {
+    console.error('Timer observe error:', error);
+    res.status(500).json({ error: 'Failed to record observation' });
+  }
+});
+
+// Shared anchor: circular mean of recent observations' cycle offsets. Returns
+// an anchor timestamp whose residue mod the cycle matches the blended phase.
+app.get('/api/timers/exec', async (req, res) => {
+  try {
+    const cached = await redis.get('timers:exec').catch(() => null);
+    if (cached) return res.json(JSON.parse(cached));
+
+    const result = await pool.query(
+      `SELECT observed_at FROM timer_observations
+       WHERE kind = 'exec_hangar' AND created_at > NOW() - INTERVAL '${EXEC_OBS_MAX_AGE_DAYS} days'
+       ORDER BY created_at DESC LIMIT 50`
+    );
+
+    let payload;
+    if (result.rows.length === 0) {
+      payload = { anchor: null, observations: 0 };
+    } else {
+      // Circular mean of offsets within the cycle (handles wraparound).
+      let sumSin = 0;
+      let sumCos = 0;
+      for (const row of result.rows) {
+        const ts = new Date(row.observed_at).getTime();
+        const theta = ((ts % EXEC_CYCLE_MS) / EXEC_CYCLE_MS) * 2 * Math.PI;
+        sumSin += Math.sin(theta);
+        sumCos += Math.cos(theta);
+      }
+      const meanTheta = Math.atan2(sumSin, sumCos);
+      const residue =
+        ((meanTheta / (2 * Math.PI)) * EXEC_CYCLE_MS + EXEC_CYCLE_MS) % EXEC_CYCLE_MS;
+      const lastReport = new Date(result.rows[0].observed_at).getTime();
+      payload = {
+        anchor: Math.round(residue),
+        observations: result.rows.length,
+        lastReportAt: new Date(lastReport).toISOString(),
+        cycleMs: EXEC_CYCLE_MS,
+      };
+    }
+
+    await redis.setex('timers:exec', 60, JSON.stringify(payload)).catch(() => {});
+    res.json(payload);
+  } catch (error) {
+    console.error('Timer anchor error:', error);
+    res.status(500).json({ error: 'Failed to load timer calibration' });
+  }
+});
+
+// =============================================================================
 // COMMUNITY ROUTES (LFG, feed, marketplace)
 // =============================================================================
 // All listings are public to read; creating/deleting requires auth. Authors are
