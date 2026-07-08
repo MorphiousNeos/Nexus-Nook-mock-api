@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useSession } from '../../SessionContext'
-import { Button, Card, EmptyState, Field } from '../../components/ui'
-import type { BlueprintStatus } from '../../services/types'
+import { Badge, Button, Card, EmptyState, Field } from '../../components/ui'
+import type {
+  BlueprintEntry,
+  BlueprintMaterial,
+  BlueprintStatus,
+} from '../../services/types'
 import {
   getCategories,
   getItemsByCategory,
@@ -9,6 +13,10 @@ import {
   type Item,
   type ItemCategory,
 } from '../../services/uex'
+
+function uid(): string {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
+}
 
 const STATUS_LABELS: Record<BlueprintStatus, string> = {
   wanted: 'Wanted',
@@ -23,6 +31,168 @@ const STATUS_COLORS: Record<BlueprintStatus, string> = {
 }
 
 const STATUS_ORDER: BlueprintStatus[] = ['wanted', 'found', 'crafted']
+
+/**
+ * Aggregated shopping list: what's still missing across every uncrafted
+ * blueprint's bill of materials, merged by material name.
+ */
+function ShoppingList({ blueprints }: { blueprints: BlueprintEntry[] }) {
+  const rows = useMemo(() => {
+    const byName = new Map<string, { name: string; missing: number; blueprints: string[] }>()
+    for (const bp of blueprints) {
+      if (bp.status === 'crafted') continue
+      for (const m of bp.materials ?? []) {
+        const missing = Math.max(0, m.need - m.have)
+        if (missing <= 0) continue
+        const key = m.name.trim().toLowerCase()
+        const entry = byName.get(key) ?? { name: m.name.trim(), missing: 0, blueprints: [] }
+        entry.missing += missing
+        if (!entry.blueprints.includes(bp.name)) entry.blueprints.push(bp.name)
+        byName.set(key, entry)
+      }
+    }
+    return Array.from(byName.values()).sort((a, b) => b.missing - a.missing)
+  }, [blueprints])
+
+  if (rows.length === 0) return null
+
+  return (
+    <div className="mb-5 rounded-xl border border-purple-900/50 bg-purple-950/15 p-4">
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-purple-300">
+        Shopping list — materials still needed
+      </h3>
+      <ul className="mt-2 space-y-1.5">
+        {rows.map((r) => (
+          <li key={r.name.toLowerCase()} className="flex items-baseline justify-between gap-3 text-sm">
+            <span className="text-slate-100">{r.name}</span>
+            <span className="shrink-0 text-right">
+              <span className="font-semibold text-amber-300">×{r.missing}</span>
+              <span className="ml-2 hidden text-[11px] text-slate-500 sm:inline">
+                for {r.blueprints.join(', ')}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** Per-blueprint bill-of-materials editor with need/have steppers. */
+function MaterialsEditor({
+  bp,
+  onChange,
+}: {
+  bp: BlueprintEntry
+  onChange: (materials: BlueprintMaterial[]) => void
+}) {
+  const materials = bp.materials ?? []
+  const [name, setName] = useState('')
+  const [need, setNeed] = useState('1')
+
+  function addMaterial(e: FormEvent) {
+    e.preventDefault()
+    const trimmed = name.trim()
+    if (!trimmed) return
+    onChange([
+      ...materials,
+      { id: uid(), name: trimmed, need: Math.max(1, parseInt(need, 10) || 1), have: 0 },
+    ])
+    setName('')
+    setNeed('1')
+  }
+
+  function patch(id: string, delta: Partial<Pick<BlueprintMaterial, 'have' | 'need'>>) {
+    onChange(
+      materials.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              ...(delta.have !== undefined ? { have: Math.max(0, delta.have) } : {}),
+              ...(delta.need !== undefined ? { need: Math.max(1, delta.need) } : {}),
+            }
+          : m,
+      ),
+    )
+  }
+
+  return (
+    <div className="mt-2 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+      {materials.length > 0 && (
+        <ul className="space-y-2">
+          {materials.map((m) => {
+            const done = m.have >= m.need
+            return (
+              <li key={m.id} className="text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={done ? 'text-emerald-400' : 'text-slate-200'}>
+                    {done ? '✓ ' : ''}
+                    {m.name}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => patch(m.id, { have: m.have - 1 })}
+                      className="grid h-6 w-6 place-items-center rounded border border-slate-700 text-slate-300 hover:bg-slate-800"
+                      aria-label={`One less ${m.name}`}
+                    >
+                      −
+                    </button>
+                    <span className="min-w-[3.5rem] text-center tabular-nums text-slate-300">
+                      {m.have}/{m.need}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => patch(m.id, { have: m.have + 1 })}
+                      className="grid h-6 w-6 place-items-center rounded border border-slate-700 text-slate-300 hover:bg-slate-800"
+                      aria-label={`One more ${m.name}`}
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onChange(materials.filter((x) => x.id !== m.id))}
+                      className="ml-1 text-xs text-slate-600 hover:text-red-400"
+                      aria-label={`Remove ${m.name}`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                </div>
+                <div className="mt-1 h-1 overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    className={`h-full rounded-full transition-all ${done ? 'bg-emerald-500' : 'bg-purple-500'}`}
+                    style={{ width: `${Math.min(100, (m.have / m.need) * 100)}%` }}
+                  />
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      <form onSubmit={addMaterial} className="mt-3 flex gap-2">
+        <input
+          placeholder="Material (e.g. Quantanium)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:border-purple-500 focus:outline-none"
+        />
+        <input
+          type="number"
+          min={1}
+          value={need}
+          onChange={(e) => setNeed(e.target.value)}
+          className="w-20 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-1.5 text-sm text-slate-100 focus:border-purple-500 focus:outline-none"
+          aria-label="Quantity needed"
+        />
+        <Button type="submit" variant="ghost" disabled={!name.trim()}>
+          Add
+        </Button>
+      </form>
+    </div>
+  )
+}
 
 export default function BlueprintCard() {
   const { state, addBlueprint, updateBlueprint, removeBlueprint } = useSession()
@@ -49,6 +219,7 @@ export default function BlueprintCard() {
   const [selected, setSelected] = useState<Item | null>(null)
   const [pickStatus, setPickStatus] = useState<BlueprintStatus>('wanted')
   const [pickNotes, setPickNotes] = useState('')
+  const [pickSource, setPickSource] = useState('')
   const [pickBusy, setPickBusy] = useState(false)
 
   // Custom entry
@@ -56,7 +227,11 @@ export default function BlueprintCard() {
   const [customName, setCustomName] = useState('')
   const [customStatus, setCustomStatus] = useState<BlueprintStatus>('wanted')
   const [customNotes, setCustomNotes] = useState('')
+  const [customSource, setCustomSource] = useState('')
   const [customBusy, setCustomBusy] = useState(false)
+
+  // Which blueprint's bill of materials is expanded.
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const catsFetchedRef = useRef(false)
 
@@ -123,6 +298,7 @@ export default function BlueprintCard() {
     setSelected(null)
     setPickStatus('wanted')
     setPickNotes('')
+    setPickSource('')
   }
 
   async function confirmSelection(e: FormEvent) {
@@ -135,6 +311,7 @@ export default function BlueprintCard() {
         category: selected.category,
         status: pickStatus,
         notes: pickNotes.trim() || undefined,
+        source: pickSource.trim() || undefined,
       })
       cancelSelection()
       setPickerOpen(false)
@@ -152,10 +329,12 @@ export default function BlueprintCard() {
         name: customName.trim(),
         status: customStatus,
         notes: customNotes.trim() || undefined,
+        source: customSource.trim() || undefined,
       })
       setCustomName('')
       setCustomStatus('wanted')
       setCustomNotes('')
+      setCustomSource('')
       setCustomOpen(false)
       setPickerOpen(false)
     } finally {
@@ -310,6 +489,12 @@ export default function BlueprintCard() {
                 </div>
               </div>
               <Field
+                label="Source (optional)"
+                placeholder="e.g. Headhunters rep tier 3, CZ loot crate…"
+                value={pickSource}
+                onChange={(e) => setPickSource(e.target.value)}
+              />
+              <Field
                 label="Notes (optional)"
                 placeholder="Found at Levski, dropped by NPC…"
                 value={pickNotes}
@@ -364,11 +549,16 @@ export default function BlueprintCard() {
                 </div>
               </div>
               <Field
+                label="Source (optional)"
+                placeholder="e.g. Headhunters rep tier 3…"
+                value={customSource}
+                onChange={(e) => setCustomSource(e.target.value)}
+              />
+              <Field
                 label="Notes (optional)"
                 placeholder="Found at Levski, researching…"
                 value={customNotes}
                 onChange={(e) => setCustomNotes(e.target.value)}
-                className="sm:col-span-2"
               />
               <div className="flex items-end sm:col-span-2">
                 <Button
@@ -383,6 +573,8 @@ export default function BlueprintCard() {
           )}
         </div>
       )}
+
+      <ShoppingList blueprints={blueprints} />
 
       {blueprints.length === 0 && (
         <EmptyState>
@@ -399,46 +591,73 @@ export default function BlueprintCard() {
             </span>
           </h3>
           <ul className="space-y-2">
-            {grouped[status].map((bp) => (
-              <li
-                key={bp.id}
-                className="flex items-start justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium text-slate-100">{bp.name}</p>
-                    {bp.category && (
-                      <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">
-                        {bp.category}
-                      </span>
-                    )}
+            {grouped[status].map((bp) => {
+              const mats = bp.materials ?? []
+              const gathered = mats.filter((m) => m.have >= m.need).length
+              const expanded = expandedId === bp.id
+              return (
+                <li
+                  key={bp.id}
+                  className="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium text-slate-100">{bp.name}</p>
+                        {bp.category && (
+                          <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">
+                            {bp.category}
+                          </span>
+                        )}
+                        {mats.length > 0 && gathered === mats.length && (
+                          <Badge tone="green">Materials ready</Badge>
+                        )}
+                      </div>
+                      {bp.source && (
+                        <p className="mt-0.5 text-xs text-sky-300/80">📍 {bp.source}</p>
+                      )}
+                      {bp.notes && <p className="mt-0.5 text-xs text-slate-500">{bp.notes}</p>}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(expanded ? null : bp.id)}
+                        className="mt-1 text-xs text-purple-300 hover:text-purple-200"
+                      >
+                        Materials{mats.length > 0 ? ` (${gathered}/${mats.length})` : ''}{' '}
+                        {expanded ? '▾' : '▸'}
+                      </button>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <select
+                        value={bp.status}
+                        onChange={(e) =>
+                          updateBlueprint(bp.id, { status: e.target.value as BlueprintStatus })
+                        }
+                        className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-300 focus:border-purple-500 focus:outline-none"
+                      >
+                        {STATUS_ORDER.map((s) => (
+                          <option key={s} value={s}>
+                            {STATUS_LABELS[s]}
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        variant="danger"
+                        onClick={() => removeBlueprint(bp.id)}
+                        className="text-xs"
+                      >
+                        Remove
+                      </Button>
+                    </div>
                   </div>
-                  {bp.notes && <p className="mt-0.5 text-xs text-slate-500">{bp.notes}</p>}
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <select
-                    value={bp.status}
-                    onChange={(e) =>
-                      updateBlueprint(bp.id, { status: e.target.value as BlueprintStatus })
-                    }
-                    className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-300 focus:border-purple-500 focus:outline-none"
-                  >
-                    {STATUS_ORDER.map((s) => (
-                      <option key={s} value={s}>
-                        {STATUS_LABELS[s]}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    variant="danger"
-                    onClick={() => removeBlueprint(bp.id)}
-                    className="text-xs"
-                  >
-                    Remove
-                  </Button>
-                </div>
-              </li>
-            ))}
+                  {expanded && (
+                    <MaterialsEditor
+                      bp={bp}
+                      onChange={(materials) => updateBlueprint(bp.id, { materials })}
+                    />
+                  )}
+                </li>
+              )
+            })}
           </ul>
         </div>
       ))}

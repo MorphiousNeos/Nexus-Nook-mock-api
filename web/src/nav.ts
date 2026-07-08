@@ -39,7 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/blueprints',
     label: 'Blueprints',
     icon: '📐',
-    description: 'Track crafting blueprints you want, have found, or have crafted.',
+    description: 'Track blueprints, gather materials, and see what your next craft needs.',
   },
   {
     to: '/hauling',
