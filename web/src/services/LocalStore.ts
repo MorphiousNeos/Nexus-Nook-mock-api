@@ -2,7 +2,9 @@ import type {
   AppState,
   AuthInput,
   BlueprintEntry,
+  HaulingContract,
   InventoryItem,
+  OpsSession,
   PlatformStatus,
   ServerStatus,
   Ship,
@@ -21,8 +23,10 @@ function loadRaw(): AppState | null {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as AppState
-    // Normalize missing blueprints field for sessions stored before this feature.
+    // Normalize fields added after a session was first stored.
     if (!Array.isArray(parsed.blueprints)) parsed.blueprints = []
+    if (!Array.isArray(parsed.hauling)) parsed.hauling = []
+    if (!Array.isArray(parsed.opsSessions)) parsed.opsSessions = []
     return parsed
   } catch {
     return null
@@ -80,6 +84,8 @@ export class LocalStore implements Store {
       fleet: [],
       inventory: [],
       blueprints: [],
+      hauling: [],
+      opsSessions: [],
     }
     persist(state)
     return state
@@ -163,6 +169,56 @@ export class LocalStore implements Store {
       s.blueprints = s.blueprints.filter((x) => x.id !== id)
     })
     return state.blueprints
+  }
+
+  async addHauling(contract: Omit<HaulingContract, 'id'>): Promise<HaulingContract[]> {
+    const state = this.mutate((s) => {
+      s.hauling.push({ ...contract, id: uid() })
+    })
+    return state.hauling
+  }
+
+  async updateHauling(
+    id: string,
+    patch: Partial<Omit<HaulingContract, 'id'>>,
+  ): Promise<HaulingContract[]> {
+    const state = this.mutate((s) => {
+      const idx = s.hauling.findIndex((x) => x.id === id)
+      if (idx !== -1) s.hauling[idx] = { ...s.hauling[idx], ...patch }
+    })
+    return state.hauling
+  }
+
+  async removeHauling(id: string): Promise<HaulingContract[]> {
+    const state = this.mutate((s) => {
+      s.hauling = s.hauling.filter((x) => x.id !== id)
+    })
+    return state.hauling
+  }
+
+  async addOpsSession(session: Omit<OpsSession, 'id'>): Promise<OpsSession[]> {
+    const state = this.mutate((s) => {
+      s.opsSessions.push({ ...session, id: uid() })
+    })
+    return state.opsSessions
+  }
+
+  async updateOpsSession(
+    id: string,
+    patch: Partial<Omit<OpsSession, 'id'>>,
+  ): Promise<OpsSession[]> {
+    const state = this.mutate((s) => {
+      const idx = s.opsSessions.findIndex((x) => x.id === id)
+      if (idx !== -1) s.opsSessions[idx] = { ...s.opsSessions[idx], ...patch }
+    })
+    return state.opsSessions
+  }
+
+  async removeOpsSession(id: string): Promise<OpsSession[]> {
+    const state = this.mutate((s) => {
+      s.opsSessions = s.opsSessions.filter((x) => x.id !== id)
+    })
+    return state.opsSessions
   }
 
   async getServerStatus(): Promise<ServerStatus[]> {

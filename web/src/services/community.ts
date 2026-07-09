@@ -434,6 +434,38 @@ export async function reportContent(
   })
 }
 
+// --- Event timer calibration ------------------------------------------------
+
+export interface ExecAnchor {
+  /** Anchor whose residue mod the 185-min cycle marks an OPEN-phase start. */
+  anchor: number | null
+  observations: number
+  lastReportAt?: string
+}
+
+/** Fetch the community-blended Executive Hangar anchor. Null when offline/demo. */
+export async function getExecAnchor(): Promise<ExecAnchor | null> {
+  if (!communityAvailable) return null
+  try {
+    const d = await request<Record<string, unknown>>('/api/timers/exec')
+    return {
+      anchor: typeof d.anchor === 'number' ? d.anchor : null,
+      observations: toOptNum(d.observations) ?? 0,
+      lastReportAt: toStr(d.lastReportAt) || undefined,
+    }
+  } catch {
+    return null
+  }
+}
+
+/** Share an "it just opened" observation (optionally backdated). Needs sign-in. */
+export async function reportExecOpen(minutesAgo = 0): Promise<void> {
+  await request('/api/timers/exec/observe', {
+    method: 'POST',
+    body: JSON.stringify({ minutesAgo }),
+  })
+}
+
 // --- presentation helpers -------------------------------------------------
 
 /** Render an ISO timestamp as a compact relative time, e.g. "3h ago". */

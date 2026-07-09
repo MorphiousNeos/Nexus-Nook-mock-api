@@ -109,6 +109,17 @@ CREATE TABLE IF NOT EXISTS org_members (
 );
 CREATE INDEX IF NOT EXISTS idx_org_members_user ON org_members(user_id);
 
+-- Crowd-sourced event timer observations (e.g. Executive Hangar cycle).
+-- Each row: a user reporting "the OPEN phase started at observed_at".
+CREATE TABLE IF NOT EXISTS timer_observations (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  kind VARCHAR(20) NOT NULL DEFAULT 'exec_hangar',
+  observed_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_timer_obs ON timer_observations(kind, created_at DESC);
+
 -- Content reports (moderation queue)
 CREATE TABLE IF NOT EXISTS content_reports (
   id SERIAL PRIMARY KEY,

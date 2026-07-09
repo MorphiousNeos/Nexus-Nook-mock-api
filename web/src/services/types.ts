@@ -28,12 +28,77 @@ export interface InventoryItem {
 /** Status of a blueprint in the player's crafting tracker. */
 export type BlueprintStatus = 'wanted' | 'found' | 'crafted'
 
+/** One material line on a blueprint's bill of materials. */
+export interface BlueprintMaterial {
+  id: string
+  name: string
+  /** Quantity the recipe needs. */
+  need: number
+  /** Quantity currently gathered. */
+  have: number
+}
+
 export interface BlueprintEntry {
   id: string
   name: string
   category?: string
   status: BlueprintStatus
   notes?: string
+  /** Where the blueprint drops / rep gate (free text). */
+  source?: string
+  /** Bill of materials for crafting this blueprint. */
+  materials?: BlueprintMaterial[]
+}
+
+/** One pickup or dropoff leg of a hauling contract. */
+export interface HaulingStop {
+  id: string
+  kind: 'pickup' | 'dropoff'
+  location: string
+  commodity: string
+  /** Cargo units for this stop. */
+  scu: number
+  done: boolean
+}
+
+export type HaulingStatus = 'active' | 'delivered'
+
+export interface HaulingContract {
+  id: string
+  name: string
+  /** Contract payout in aUEC. */
+  reward?: number
+  notes?: string
+  status: HaulingStatus
+  stops: HaulingStop[]
+}
+
+/** One crew member's share weight in an ops session. */
+export interface CrewShare {
+  id: string
+  name: string
+  /** Relative share weight (1 = a normal cut, 2 = double, 0.5 = half). */
+  shares: number
+}
+
+/** One income (+) or expense (−) line in an ops session ledger. */
+export interface OpsLedgerEntry {
+  id: string
+  label: string
+  /** aUEC. Positive = income (a sold haul), negative = expense (fees, fuel). */
+  amount: number
+}
+
+export type OpsActivity = 'mining' | 'salvage' | 'cargo' | 'other'
+
+/** A collaborative earnings session (mining run, salvage op…) with splits. */
+export interface OpsSession {
+  id: string
+  name: string
+  activity: OpsActivity
+  crew: CrewShare[]
+  entries: OpsLedgerEntry[]
+  closed?: boolean
 }
 
 export type ServerStatusLevel = 'online' | 'degraded' | 'maintenance' | 'offline'
@@ -61,6 +126,8 @@ export interface AppState {
   fleet: Ship[]
   inventory: InventoryItem[]
   blueprints: BlueprintEntry[]
+  hauling: HaulingContract[]
+  opsSessions: OpsSession[]
 }
 
 export interface AuthInput {
@@ -103,6 +170,14 @@ export interface Store {
   addBlueprint(entry: Omit<BlueprintEntry, 'id'>): Promise<BlueprintEntry[]>
   updateBlueprint(id: string, patch: Partial<Omit<BlueprintEntry, 'id'>>): Promise<BlueprintEntry[]>
   removeBlueprint(id: string): Promise<BlueprintEntry[]>
+
+  addHauling(contract: Omit<HaulingContract, 'id'>): Promise<HaulingContract[]>
+  updateHauling(id: string, patch: Partial<Omit<HaulingContract, 'id'>>): Promise<HaulingContract[]>
+  removeHauling(id: string): Promise<HaulingContract[]>
+
+  addOpsSession(session: Omit<OpsSession, 'id'>): Promise<OpsSession[]>
+  updateOpsSession(id: string, patch: Partial<Omit<OpsSession, 'id'>>): Promise<OpsSession[]>
+  removeOpsSession(id: string): Promise<OpsSession[]>
 
   getServerStatus(): Promise<ServerStatus[]>
 
