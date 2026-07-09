@@ -15,7 +15,7 @@ export function Card({
 }) {
   return (
     <section
-      className={`group relative overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-xl shadow-black/30 backdrop-blur transition duration-300 hover:border-slate-700/80 hover:shadow-2xl hover:shadow-purple-950/20 sm:p-6 ${className}`}
+      className={`group relative overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-xl shadow-black/30 backdrop-blur transition duration-300 hover:border-slate-700/80 hover:shadow-2xl hover:shadow-purple-950/20 sm:p-6 lg:p-7 ${className}`}
     >
       {/* Subtle top edge highlight */}
       <span

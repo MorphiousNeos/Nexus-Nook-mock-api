@@ -90,9 +90,9 @@ export default function OverviewPage() {
   )
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10 lg:max-w-6xl lg:px-8 lg:py-12">
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
           Welcome back,{' '}
           <span className="bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text text-transparent">
             {profile.displayName.split(' ')[0] || 'Citizen'}

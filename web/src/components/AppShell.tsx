@@ -86,7 +86,7 @@ export default function AppShell() {
   }, [location.pathname])
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl">
+    <div className="mx-auto flex w-full max-w-7xl 2xl:max-w-[1400px]">
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-800/70 bg-slate-950/60 px-4 py-5 backdrop-blur lg:flex">
         <Brand />
