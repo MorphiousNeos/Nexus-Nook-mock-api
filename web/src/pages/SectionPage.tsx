@@ -13,7 +13,7 @@ export default function SectionPage({
   children: ReactNode
 }) {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10 lg:max-w-6xl lg:px-8 lg:py-12">
       <header className="mb-7 flex items-start gap-3">
         <span
           aria-hidden
@@ -22,10 +22,10 @@ export default function SectionPage({
           {icon}
         </span>
         <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
             {title}
           </h1>
-          <p className="mt-1 text-sm text-slate-400">{description}</p>
+          <p className="mt-1 text-sm text-slate-400 lg:text-base">{description}</p>
         </div>
       </header>
       {children}
