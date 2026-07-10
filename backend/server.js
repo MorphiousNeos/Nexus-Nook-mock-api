@@ -681,6 +681,249 @@ app.get('/api/servers/status', async (req, res) => {
 });
 
 // =============================================================================
+// SHARED OPS SESSIONS (community mining / salvage crews)
+// =============================================================================
+// Sessions are visible to everyone; any signed-in player can join an open
+// crew, and crew members log the shared ledger together. The owner adjusts
+// share weights and closes the session.
+
+// List sessions (public), newest first, with owner/crew/net rollups.
+app.get('/api/ops', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT s.id, s.name, s.activity, s.closed, s.created_at,
+              u.username AS owner,
+              (SELECT COUNT(*) FROM shared_ops_crew c WHERE c.session_id = s.id) AS crew_count,
+              (SELECT COALESCE(SUM(e.amount), 0) FROM shared_ops_entries e WHERE e.session_id = s.id) AS net
+       FROM shared_ops_sessions s JOIN users u ON u.id = s.owner_id
+       ORDER BY s.closed ASC, s.created_at DESC LIMIT 100`
+    );
+    res.json({ sessions: result.rows });
+  } catch (error) {
+    console.error('Ops list error:', error);
+    res.status(500).json({ error: 'Failed to load sessions' });
+  }
+});
+
+// Create a session; the creator joins the crew automatically.
+app.post('/api/ops', authenticateToken, communityWriteLimit, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const name = clamp(req.body.name, 120);
+    if (!name) return res.status(400).json({ error: 'A session name is required' });
+    const allowed = ['mining', 'salvage', 'cargo', 'other'];
+    const activity = allowed.includes(req.body.activity) ? req.body.activity : 'mining';
+
+    await client.query('BEGIN');
+    const created = await client.query(
+      `INSERT INTO shared_ops_sessions (owner_id, name, activity) VALUES ($1, $2, $3) RETURNING id`,
+      [req.user.userId, name, activity]
+    );
+    const sessionId = created.rows[0].id;
+    await client.query(
+      `INSERT INTO shared_ops_crew (session_id, user_id) VALUES ($1, $2)`,
+      [sessionId, req.user.userId]
+    );
+    await client.query('COMMIT');
+    res.status(201).json({ success: true, id: sessionId });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Ops create error:', error);
+    res.status(500).json({ error: 'Failed to create session' });
+  } finally {
+    client.release();
+  }
+});
+
+// Session detail: crew (with shares) + ledger entries.
+app.get('/api/ops/:id', async (req, res) => {
+  try {
+    const sessionResult = await pool.query(
+      `SELECT s.id, s.name, s.activity, s.closed, s.created_at, s.owner_id,
+              u.username AS owner
+       FROM shared_ops_sessions s JOIN users u ON u.id = s.owner_id WHERE s.id = $1`,
+      [req.params.id]
+    );
+    if (sessionResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    const crew = await pool.query(
+      `SELECT c.user_id, u.username AS name, c.shares, c.joined_at
+       FROM shared_ops_crew c JOIN users u ON u.id = c.user_id
+       WHERE c.session_id = $1 ORDER BY c.joined_at ASC`,
+      [req.params.id]
+    );
+    const entries = await pool.query(
+      `SELECT e.id, e.label, e.amount, e.created_at, u.username AS author
+       FROM shared_ops_entries e LEFT JOIN users u ON u.id = e.user_id
+       WHERE e.session_id = $1 ORDER BY e.created_at ASC LIMIT 500`,
+      [req.params.id]
+    );
+    res.json({ session: sessionResult.rows[0], crew: crew.rows, entries: entries.rows });
+  } catch (error) {
+    console.error('Ops detail error:', error);
+    res.status(500).json({ error: 'Failed to load session' });
+  }
+});
+
+// Join an open session's crew.
+app.post('/api/ops/:id/join', authenticateToken, async (req, res) => {
+  try {
+    const s = await pool.query('SELECT closed FROM shared_ops_sessions WHERE id = $1', [
+      req.params.id,
+    ]);
+    if (s.rows.length === 0) return res.status(404).json({ error: 'Session not found' });
+    if (s.rows[0].closed) return res.status(400).json({ error: 'This session is closed' });
+    await pool.query(
+      `INSERT INTO shared_ops_crew (session_id, user_id) VALUES ($1, $2)
+       ON CONFLICT (session_id, user_id) DO NOTHING`,
+      [req.params.id, req.user.userId]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Ops join error:', error);
+    res.status(500).json({ error: 'Failed to join session' });
+  }
+});
+
+// Leave a session (owner cannot leave their own).
+app.post('/api/ops/:id/leave', authenticateToken, async (req, res) => {
+  try {
+    const s = await pool.query('SELECT owner_id FROM shared_ops_sessions WHERE id = $1', [
+      req.params.id,
+    ]);
+    if (s.rows.length === 0) return res.status(404).json({ error: 'Session not found' });
+    if (s.rows[0].owner_id === req.user.userId) {
+      return res.status(400).json({ error: 'The owner cannot leave — close or delete instead' });
+    }
+    await pool.query(
+      'DELETE FROM shared_ops_crew WHERE session_id = $1 AND user_id = $2',
+      [req.params.id, req.user.userId]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Ops leave error:', error);
+    res.status(500).json({ error: 'Failed to leave session' });
+  }
+});
+
+// Owner: set a crew member's share weight (0-99.5 in 0.5 steps).
+app.post('/api/ops/:id/shares', authenticateToken, async (req, res) => {
+  try {
+    const s = await pool.query('SELECT owner_id FROM shared_ops_sessions WHERE id = $1', [
+      req.params.id,
+    ]);
+    if (s.rows.length === 0) return res.status(404).json({ error: 'Session not found' });
+    if (s.rows[0].owner_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Only the session owner can set shares' });
+    }
+    const targetId = parseInt(req.body.userId, 10);
+    const shares = Math.max(0, Math.min(99.5, Math.round((Number(req.body.shares) || 0) * 2) / 2));
+    if (!Number.isFinite(targetId)) {
+      return res.status(400).json({ error: 'A crew member userId is required' });
+    }
+    await pool.query(
+      'UPDATE shared_ops_crew SET shares = $1 WHERE session_id = $2 AND user_id = $3',
+      [shares, req.params.id, targetId]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Ops shares error:', error);
+    res.status(500).json({ error: 'Failed to update shares' });
+  }
+});
+
+// Crew: add a ledger entry (positive income, negative expense).
+app.post('/api/ops/:id/entries', authenticateToken, communityWriteLimit, async (req, res) => {
+  try {
+    const member = await pool.query(
+      'SELECT 1 FROM shared_ops_crew WHERE session_id = $1 AND user_id = $2',
+      [req.params.id, req.user.userId]
+    );
+    if (member.rows.length === 0) {
+      return res.status(403).json({ error: 'Join the session to log entries' });
+    }
+    const s = await pool.query('SELECT closed FROM shared_ops_sessions WHERE id = $1', [
+      req.params.id,
+    ]);
+    if (s.rows[0]?.closed) return res.status(400).json({ error: 'This session is closed' });
+    const label = clamp(req.body.label, 140);
+    const amount = Math.trunc(Number(req.body.amount) || 0);
+    if (!label || amount === 0) {
+      return res.status(400).json({ error: 'A label and non-zero amount are required' });
+    }
+    await pool.query(
+      `INSERT INTO shared_ops_entries (session_id, user_id, label, amount) VALUES ($1, $2, $3, $4)`,
+      [req.params.id, req.user.userId, label, amount]
+    );
+    res.status(201).json({ success: true });
+  } catch (error) {
+    console.error('Ops entry error:', error);
+    res.status(500).json({ error: 'Failed to add entry' });
+  }
+});
+
+// Entry author or session owner: remove a ledger entry.
+app.delete('/api/ops/:id/entries/:entryId', authenticateToken, async (req, res) => {
+  try {
+    const s = await pool.query('SELECT owner_id FROM shared_ops_sessions WHERE id = $1', [
+      req.params.id,
+    ]);
+    if (s.rows.length === 0) return res.status(404).json({ error: 'Session not found' });
+    const isOwner = s.rows[0].owner_id === req.user.userId;
+    const result = isOwner
+      ? await pool.query(
+          'DELETE FROM shared_ops_entries WHERE id = $1 AND session_id = $2 RETURNING id',
+          [req.params.entryId, req.params.id]
+        )
+      : await pool.query(
+          'DELETE FROM shared_ops_entries WHERE id = $1 AND session_id = $2 AND user_id = $3 RETURNING id',
+          [req.params.entryId, req.params.id, req.user.userId]
+        );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Ops entry delete error:', error);
+    res.status(500).json({ error: 'Failed to delete entry' });
+  }
+});
+
+// Owner: close/reopen a session.
+app.post('/api/ops/:id/close', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'UPDATE shared_ops_sessions SET closed = NOT closed WHERE id = $1 AND owner_id = $2 RETURNING closed',
+      [req.params.id, req.user.userId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true, closed: result.rows[0].closed });
+  } catch (error) {
+    console.error('Ops close error:', error);
+    res.status(500).json({ error: 'Failed to update session' });
+  }
+});
+
+// Owner or moderator: delete a session.
+app.delete('/api/ops/:id', authenticateToken, async (req, res) => {
+  try {
+    const admin = await isAdmin(req.user.userId);
+    const result = admin
+      ? await pool.query('DELETE FROM shared_ops_sessions WHERE id = $1 RETURNING id', [
+          req.params.id,
+        ])
+      : await pool.query(
+          'DELETE FROM shared_ops_sessions WHERE id = $1 AND owner_id = $2 RETURNING id',
+          [req.params.id, req.user.userId]
+        );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Ops delete error:', error);
+    res.status(500).json({ error: 'Failed to delete session' });
+  }
+});
+
+// =============================================================================
 // EVENT TIMER CALIBRATION (Executive Hangar)
 // =============================================================================
 // The Executive Hangar cycle is a public game fact: 185 minutes, globally
