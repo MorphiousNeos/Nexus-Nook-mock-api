@@ -434,6 +434,160 @@ export async function reportContent(
   })
 }
 
+// --- Shared ops sessions (community mining/salvage crews) --------------------
+
+export type SharedOpsActivity = 'mining' | 'salvage' | 'cargo' | 'other'
+
+export interface SharedOpsSummary {
+  id: string
+  name: string
+  activity: SharedOpsActivity
+  closed: boolean
+  createdAt: string
+  owner: string
+  crewCount: number
+  net: number
+}
+
+export interface SharedOpsCrew {
+  userId: string
+  name: string
+  shares: number
+}
+
+export interface SharedOpsEntry {
+  id: string
+  label: string
+  amount: number
+  createdAt: string
+  author: string
+}
+
+export interface SharedOpsDetail {
+  id: string
+  name: string
+  activity: SharedOpsActivity
+  closed: boolean
+  createdAt: string
+  owner: string
+  crew: SharedOpsCrew[]
+  entries: SharedOpsEntry[]
+}
+
+function mapOpsActivity(raw: unknown): SharedOpsActivity {
+  const a = toStr(raw)
+  if (a === 'salvage' || a === 'cargo' || a === 'other') return a
+  return 'mining'
+}
+
+function mapOpsSummary(raw: unknown): SharedOpsSummary {
+  const r = (raw ?? {}) as Record<string, unknown>
+  return {
+    id: toStr(r.id),
+    name: toStr(r.name),
+    activity: mapOpsActivity(r.activity),
+    closed: r.closed === true || r.closed === 't',
+    createdAt: toStr(r.created_at ?? r.createdAt),
+    owner: toStr(r.owner),
+    crewCount: toOptNum(r.crew_count ?? r.crewCount) ?? 0,
+    net: toOptNum(r.net) ?? 0,
+  }
+}
+
+export async function listSharedOps(): Promise<SharedOpsSummary[]> {
+  const data = await request<{ sessions?: unknown[] }>('/api/ops')
+  return (data.sessions ?? []).map(mapOpsSummary)
+}
+
+export async function createSharedOps(
+  name: string,
+  activity: SharedOpsActivity,
+): Promise<{ id: string }> {
+  const data = await request<{ id?: unknown }>('/api/ops', {
+    method: 'POST',
+    body: JSON.stringify({ name, activity }),
+  })
+  return { id: toStr(data.id) }
+}
+
+export async function getSharedOps(id: string): Promise<SharedOpsDetail> {
+  const data = await request<Record<string, unknown>>(`/api/ops/${encodeURIComponent(id)}`)
+  const s = (data.session ?? {}) as Record<string, unknown>
+  const crew = Array.isArray(data.crew) ? data.crew : []
+  const entries = Array.isArray(data.entries) ? data.entries : []
+  return {
+    id: toStr(s.id),
+    name: toStr(s.name),
+    activity: mapOpsActivity(s.activity),
+    closed: s.closed === true || s.closed === 't',
+    createdAt: toStr(s.created_at),
+    owner: toStr(s.owner),
+    crew: crew.map((c) => {
+      const r = (c ?? {}) as Record<string, unknown>
+      return {
+        userId: toStr(r.user_id ?? r.userId),
+        name: toStr(r.name),
+        shares: toOptNum(r.shares) ?? 1,
+      }
+    }),
+    entries: entries.map((e) => {
+      const r = (e ?? {}) as Record<string, unknown>
+      return {
+        id: toStr(r.id),
+        label: toStr(r.label),
+        amount: toOptNum(r.amount) ?? 0,
+        createdAt: toStr(r.created_at ?? r.createdAt),
+        author: toStr(r.author),
+      }
+    }),
+  }
+}
+
+export async function joinSharedOps(id: string): Promise<void> {
+  await request(`/api/ops/${encodeURIComponent(id)}/join`, { method: 'POST' })
+}
+
+export async function leaveSharedOps(id: string): Promise<void> {
+  await request(`/api/ops/${encodeURIComponent(id)}/leave`, { method: 'POST' })
+}
+
+export async function setSharedOpsShares(
+  id: string,
+  userId: string,
+  shares: number,
+): Promise<void> {
+  await request(`/api/ops/${encodeURIComponent(id)}/shares`, {
+    method: 'POST',
+    body: JSON.stringify({ userId, shares }),
+  })
+}
+
+export async function addSharedOpsEntry(
+  id: string,
+  label: string,
+  amount: number,
+): Promise<void> {
+  await request(`/api/ops/${encodeURIComponent(id)}/entries`, {
+    method: 'POST',
+    body: JSON.stringify({ label, amount }),
+  })
+}
+
+export async function deleteSharedOpsEntry(id: string, entryId: string): Promise<void> {
+  await request(
+    `/api/ops/${encodeURIComponent(id)}/entries/${encodeURIComponent(entryId)}`,
+    { method: 'DELETE' },
+  )
+}
+
+export async function toggleSharedOpsClosed(id: string): Promise<void> {
+  await request(`/api/ops/${encodeURIComponent(id)}/close`, { method: 'POST' })
+}
+
+export async function deleteSharedOps(id: string): Promise<void> {
+  await request(`/api/ops/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
 // --- Event timer calibration ------------------------------------------------
 
 export interface ExecAnchor {

@@ -109,6 +109,35 @@ CREATE TABLE IF NOT EXISTS org_members (
 );
 CREATE INDEX IF NOT EXISTS idx_org_members_user ON org_members(user_id);
 
+-- Shared mining/salvage ops sessions (community-visible, joinable crews)
+CREATE TABLE IF NOT EXISTS shared_ops_sessions (
+  id SERIAL PRIMARY KEY,
+  owner_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(120) NOT NULL,
+  activity VARCHAR(20) DEFAULT 'mining',
+  closed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_shared_ops_created ON shared_ops_sessions(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS shared_ops_crew (
+  session_id INTEGER REFERENCES shared_ops_sessions(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  shares NUMERIC(4,1) DEFAULT 1,
+  joined_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (session_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS shared_ops_entries (
+  id SERIAL PRIMARY KEY,
+  session_id INTEGER REFERENCES shared_ops_sessions(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  label VARCHAR(140) NOT NULL,
+  amount BIGINT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_shared_ops_entries ON shared_ops_entries(session_id, created_at);
+
 -- Crowd-sourced event timer observations (e.g. Executive Hangar cycle).
 -- Each row: a user reporting "the OPEN phase started at observed_at".
 CREATE TABLE IF NOT EXISTS timer_observations (
