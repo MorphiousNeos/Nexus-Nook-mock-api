@@ -11,6 +11,7 @@ import InventoryPage from './pages/app/InventoryPage'
 import BlueprintsPage from './pages/app/BlueprintsPage'
 import HaulingPage from './pages/app/HaulingPage'
 import MiningPage from './pages/app/MiningPage'
+import NewsPage from './pages/app/NewsPage'
 import OrgPage from './pages/app/OrgPage'
 import CommunityPage from './pages/app/CommunityPage'
 import ServersPage from './pages/app/ServersPage'
@@ -54,6 +55,7 @@ function Layout() {
               <Route path="blueprints" element={<BlueprintsPage />} />
               <Route path="hauling" element={<HaulingPage />} />
               <Route path="mining" element={<MiningPage />} />
+              <Route path="news" element={<NewsPage />} />
               <Route path="org" element={<OrgPage />} />
               <Route path="community" element={<CommunityPage />} />
               <Route path="servers" element={<ServersPage />} />

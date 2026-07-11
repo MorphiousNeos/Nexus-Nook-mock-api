@@ -96,11 +96,243 @@ body {
   animation: nn-shimmer 1.4s infinite;
 }
 
+/* =============================================================================
+   LANDING PAGE — cinematic space scene
+   ============================================================================= */
+
+/* Breathing nebula glows. */
+.nn-nebula {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  opacity: 0.5;
+  animation: nn-breathe 14s ease-in-out infinite;
+}
+.nn-nebula-1 {
+  top: -12%;
+  left: -8%;
+  width: 55vw;
+  height: 45vh;
+  background: radial-gradient(closest-side, rgba(37, 99, 235, 0.4), transparent);
+}
+.nn-nebula-2 {
+  top: -5%;
+  right: -10%;
+  width: 48vw;
+  height: 50vh;
+  background: radial-gradient(closest-side, rgba(124, 58, 237, 0.45), transparent);
+  animation-delay: -5s;
+}
+.nn-nebula-3 {
+  bottom: -20%;
+  left: 25%;
+  width: 50vw;
+  height: 45vh;
+  background: radial-gradient(closest-side, rgba(217, 70, 239, 0.28), transparent);
+  animation-delay: -9s;
+}
+@keyframes nn-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.08);
+  }
+}
+
+/* Distant planet rim rising over the bottom edge. */
+.nn-planet {
+  position: absolute;
+  bottom: -42vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140vw;
+  height: 60vh;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  background:
+    radial-gradient(120% 100% at 50% 0%, rgba(30, 41, 59, 0.9), rgba(2, 6, 23, 1) 70%);
+  box-shadow:
+    0 -1px 24px rgba(124, 58, 237, 0.35),
+    0 -1px 80px rgba(59, 130, 246, 0.22);
+}
+
+/* Ships crossing the viewport. Paths + speeds vary per ship. */
+.nn-ship {
+  position: absolute;
+  left: 0;
+  will-change: transform;
+}
+.nn-ship-1 {
+  top: 16%;
+  animation: nn-fly-a 26s linear infinite;
+}
+.nn-ship-2 {
+  top: 34%;
+  animation: nn-fly-b 44s linear infinite;
+  animation-delay: -18s;
+}
+.nn-ship-3 {
+  top: 62%;
+  animation: nn-fly-a 19s linear infinite;
+  animation-delay: -7s;
+}
+.nn-ship-4 {
+  top: 8%;
+  animation: nn-fly-c 34s linear infinite;
+  animation-delay: -26s;
+}
+@keyframes nn-fly-a {
+  0% {
+    transform: translateX(-15vw) translateY(0) rotate(-2deg);
+  }
+  100% {
+    transform: translateX(115vw) translateY(-6vh) rotate(-2deg);
+  }
+}
+@keyframes nn-fly-b {
+  0% {
+    transform: translateX(-20vw) translateY(0);
+  }
+  100% {
+    transform: translateX(115vw) translateY(3vh);
+  }
+}
+@keyframes nn-fly-c {
+  0% {
+    transform: translateX(115vw) translateY(0) scaleX(-1) rotate(2deg);
+  }
+  100% {
+    transform: translateX(-15vw) translateY(4vh) scaleX(-1) rotate(2deg);
+  }
+}
+
+/* Quantum travel streaks — a ship gone superluminal. */
+.nn-warp {
+  position: absolute;
+  height: 2px;
+  width: 26vw;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(165, 180, 252, 0.9),
+    rgba(255, 255, 255, 0.95),
+    transparent
+  );
+  opacity: 0;
+  animation: nn-warp 9s ease-in infinite;
+  will-change: transform, opacity;
+}
+.nn-warp-1 {
+  top: 26%;
+  animation-delay: 3s;
+}
+.nn-warp-2 {
+  top: 74%;
+  width: 18vw;
+  animation-delay: 7.5s;
+  animation-duration: 11s;
+}
+@keyframes nn-warp {
+  0%,
+  88% {
+    opacity: 0;
+    transform: translateX(-30vw);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(130vw);
+  }
+}
+
+/* Hero entrance choreography. */
+.nn-rise {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: nn-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.nn-rise-1 { animation-delay: 0.05s; }
+.nn-rise-2 { animation-delay: 0.18s; }
+.nn-rise-3 { animation-delay: 0.32s; }
+.nn-rise-4 { animation-delay: 0.46s; }
+.nn-rise-5 { animation-delay: 0.6s; }
+@keyframes nn-rise {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animated gradient shimmer across the brand title. */
+.nn-title-gradient {
+  background-image: linear-gradient(
+    100deg,
+    #60a5fa 0%,
+    #a78bfa 30%,
+    #e879f9 50%,
+    #a78bfa 70%,
+    #60a5fa 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: nn-gradient-slide 7s ease-in-out infinite;
+}
+@keyframes nn-gradient-slide {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Slow hover-bob for the brand icon. */
+.nn-float {
+  animation: nn-float 5s ease-in-out infinite;
+}
+@keyframes nn-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
   .nn-skeleton::after {
+    animation: none;
+  }
+  .nn-ship,
+  .nn-warp {
+    display: none;
+  }
+  .nn-nebula,
+  .nn-float,
+  .nn-title-gradient {
+    animation: none;
+  }
+  .nn-rise,
+  .nn-rise-1,
+  .nn-rise-2,
+  .nn-rise-3,
+  .nn-rise-4,
+  .nn-rise-5 {
+    opacity: 1;
+    transform: none;
     animation: none;
   }
 }

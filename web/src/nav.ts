@@ -54,6 +54,12 @@ export const NAV_ITEMS: NavItem[] = [
     description: 'Run crew sessions, log the take, and split profits fairly.',
   },
   {
+    to: '/news',
+    label: 'News',
+    icon: '📰',
+    description: 'Official Comm-Links and announcements from the verse.',
+  },
+  {
     to: '/org',
     label: 'Org',
     icon: '🌌',

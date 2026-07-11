@@ -411,3 +411,97 @@ export async function getVehicleDetail(
   const body = await wikiGet<unknown>(path)
   return mapDetail(body)
 }
+
+// ── Comm-Links ─────────────────────────────────────────────────────────────
+
+export type CommLink = {
+  id?: string | number
+  title: string
+  /** Absolute link to the Comm-Link on robertsspaceindustries.com (when known). */
+  url?: string
+  /** ISO-ish date string as returned by the API (created_at / published_at). */
+  publishedAt?: string
+  channel?: string
+  series?: string
+  imageUrl?: string
+}
+
+const RSI_BASE = 'https://robertsspaceindustries.com'
+
+/** Absolute-ify a Comm-Link URL: relative RSI paths get the RSI origin. */
+function toRsiUrl(value: unknown): string | undefined {
+  const s = toStr(value)
+  if (!s) return undefined
+  if (/^https?:\/\//i.test(s)) return s
+  if (s.startsWith('/')) return `${RSI_BASE}${s}`
+  return `${RSI_BASE}/${s}`
+}
+
+/** Pull a usable image URL from a comm-link's `images` array (or flat field). */
+function pickCommLinkImage(r: Record<string, unknown>): string | undefined {
+  const flat = toStr(r.image) ?? toStr(r.image_url) ?? toStr(r.thumbnail)
+  if (flat) return flat
+
+  const images = asArray(r.images) ?? asArray(asObject(r.images)?.data)
+  if (!images) return undefined
+  for (const img of images) {
+    if (typeof img === 'string' && img.trim() !== '') return img
+    const o = asObject(img)
+    if (!o) continue
+    const candidate =
+      toStr(o.rsi_url) ??
+      toStr(o.direct_url) ??
+      toStr(o.url) ??
+      toStr(o.src)
+    if (candidate) return candidate
+  }
+  return undefined
+}
+
+function mapCommLink(raw: unknown): CommLink | null {
+  const r = asObject(raw)
+  if (!r) return null
+
+  const title = toStr(r.title) ?? toStr(r.name)
+  if (!title) return null
+
+  const id =
+    typeof r.id === 'number' || typeof r.id === 'string' ? r.id : undefined
+
+  // Channel / series may be flat strings or nested objects with a name.
+  const channel =
+    toStr(r.channel) ?? toStr(asObject(r.channel)?.name)
+  const series = toStr(r.series) ?? toStr(asObject(r.series)?.name)
+
+  return {
+    id,
+    title,
+    url: toRsiUrl(r.url) ?? toRsiUrl(r.rsi_url) ?? toRsiUrl(r.link),
+    publishedAt:
+      toStr(r.published_at) ??
+      toStr(r.publishedAt) ??
+      toStr(r.created_at) ??
+      toStr(r.createdAt) ??
+      toStr(r.date),
+    channel,
+    series,
+    imageUrl: pickCommLinkImage(r),
+  }
+}
+
+/**
+ * Fetch recent official Comm-Links. Parses defensively: accepts `{ data: [...] }`
+ * or a bare array, and drops entries without a title.
+ */
+export async function getCommLinks(limit = 20): Promise<CommLink[]> {
+  const n = Math.max(1, Math.floor(limit))
+  const body = await wikiGet<unknown>(`/comm-links?limit=${n}`)
+  const rows = unwrapArray(body)
+
+  const out: CommLink[] = []
+  for (const raw of rows) {
+    const mapped = mapCommLink(raw)
+    if (mapped) out.push(mapped)
+  }
+  return out
+}
