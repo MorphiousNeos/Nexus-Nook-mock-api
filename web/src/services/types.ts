@@ -50,6 +50,27 @@ export interface BlueprintEntry {
   materials?: BlueprintMaterial[]
 }
 
+/** One component slot in a saved ship loadout. */
+export interface LoadoutComponent {
+  id: string
+  name: string
+  category?: string
+  /** UEX item id, kept so we can look up buy locations later. */
+  uexId?: number | string
+  notes?: string
+}
+
+/** A named component build for one ship. */
+export interface Loadout {
+  id: string
+  name: string
+  ship: string
+  /** Saved via in-game Item Recovery (Alpha 4.9+). */
+  savedInGame: boolean
+  components: LoadoutComponent[]
+  notes?: string
+}
+
 /** One pickup or dropoff leg of a hauling contract. */
 export interface HaulingStop {
   id: string
@@ -128,6 +149,7 @@ export interface AppState {
   blueprints: BlueprintEntry[]
   hauling: HaulingContract[]
   opsSessions: OpsSession[]
+  loadouts: Loadout[]
 }
 
 export interface AuthInput {
@@ -178,6 +200,10 @@ export interface Store {
   addOpsSession(session: Omit<OpsSession, 'id'>): Promise<OpsSession[]>
   updateOpsSession(id: string, patch: Partial<Omit<OpsSession, 'id'>>): Promise<OpsSession[]>
   removeOpsSession(id: string): Promise<OpsSession[]>
+
+  addLoadout(loadout: Omit<Loadout, 'id'>): Promise<Loadout[]>
+  updateLoadout(id: string, patch: Partial<Omit<Loadout, 'id'>>): Promise<Loadout[]>
+  removeLoadout(id: string): Promise<Loadout[]>
 
   getServerStatus(): Promise<ServerStatus[]>
 

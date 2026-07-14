@@ -14,6 +14,7 @@ import type {
   BlueprintEntry,
   HaulingContract,
   InventoryItem,
+  Loadout,
   OpsSession,
   PlatformStatus,
   ServerStatus,
@@ -42,6 +43,9 @@ interface SessionContextValue {
   addOpsSession: (session: Omit<OpsSession, 'id'>) => Promise<void>
   updateOpsSession: (id: string, patch: Partial<Omit<OpsSession, 'id'>>) => Promise<void>
   removeOpsSession: (id: string) => Promise<void>
+  addLoadout: (loadout: Omit<Loadout, 'id'>) => Promise<void>
+  updateLoadout: (id: string, patch: Partial<Omit<Loadout, 'id'>>) => Promise<void>
+  removeLoadout: (id: string) => Promise<void>
   getServerStatus: () => Promise<ServerStatus[]>
   getPlatformStatus: () => Promise<PlatformStatus[] | null>
 }
@@ -195,6 +199,30 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [store],
   )
 
+  const addLoadout = useCallback(
+    async (loadout: Omit<Loadout, 'id'>) => {
+      const loadouts = await store.addLoadout(loadout)
+      setState((prev) => (prev ? { ...prev, loadouts } : prev))
+    },
+    [store],
+  )
+
+  const updateLoadout = useCallback(
+    async (id: string, patch: Partial<Omit<Loadout, 'id'>>) => {
+      const loadouts = await store.updateLoadout(id, patch)
+      setState((prev) => (prev ? { ...prev, loadouts } : prev))
+    },
+    [store],
+  )
+
+  const removeLoadout = useCallback(
+    async (id: string) => {
+      const loadouts = await store.removeLoadout(id)
+      setState((prev) => (prev ? { ...prev, loadouts } : prev))
+    },
+    [store],
+  )
+
   const getServerStatus = useCallback(() => store.getServerStatus(), [store])
   const getPlatformStatus = useCallback(() => store.getPlatformStatus(), [store])
 
@@ -219,6 +247,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     addOpsSession,
     updateOpsSession,
     removeOpsSession,
+    addLoadout,
+    updateLoadout,
+    removeLoadout,
     getServerStatus,
     getPlatformStatus,
   }

@@ -4,6 +4,7 @@ import type {
   BlueprintEntry,
   HaulingContract,
   InventoryItem,
+  Loadout,
   OpsSession,
   PlatformStatus,
   ServerStatus,
@@ -96,6 +97,7 @@ export class ApiStore implements Store {
     blueprints: BlueprintEntry[]
     hauling: HaulingContract[]
     opsSessions: OpsSession[]
+    loadouts: Loadout[]
     rsiHandle: string
   } {
     try {
@@ -105,12 +107,13 @@ export class ApiStore implements Store {
         if (!Array.isArray(parsed.blueprints)) parsed.blueprints = []
         if (!Array.isArray(parsed.hauling)) parsed.hauling = []
         if (!Array.isArray(parsed.opsSessions)) parsed.opsSessions = []
+        if (!Array.isArray(parsed.loadouts)) parsed.loadouts = []
         return parsed
       }
     } catch {
       /* ignore */
     }
-    return { fleet: [], inventory: [], blueprints: [], hauling: [], opsSessions: [], rsiHandle: '' }
+    return { fleet: [], inventory: [], blueprints: [], hauling: [], opsSessions: [], loadouts: [], rsiHandle: '' }
   }
 
   private async saveBlob(blob: {
@@ -119,6 +122,7 @@ export class ApiStore implements Store {
     blueprints: BlueprintEntry[]
     hauling: HaulingContract[]
     opsSessions: OpsSession[]
+    loadouts: Loadout[]
     rsiHandle: string
   }): Promise<void> {
     localStorage.setItem(CACHE_KEY, JSON.stringify(blob))
@@ -134,6 +138,7 @@ export class ApiStore implements Store {
     blueprints: BlueprintEntry[]
     hauling: HaulingContract[]
     opsSessions: OpsSession[]
+    loadouts: Loadout[]
     rsiHandle: string
   }> {
     const data = await this.request<{ gameData: any }>('/api/user/load')
@@ -144,6 +149,7 @@ export class ApiStore implements Store {
       blueprints: Array.isArray(blob.blueprints) ? blob.blueprints : [],
       hauling: Array.isArray(blob.hauling) ? blob.hauling : [],
       opsSessions: Array.isArray(blob.opsSessions) ? blob.opsSessions : [],
+      loadouts: Array.isArray(blob.loadouts) ? blob.loadouts : [],
       rsiHandle: typeof blob.rsiHandle === 'string' ? blob.rsiHandle : '',
     }
     localStorage.setItem(CACHE_KEY, JSON.stringify(normalized))
@@ -168,6 +174,7 @@ export class ApiStore implements Store {
       blueprints: blob.blueprints,
       hauling: blob.hauling,
       opsSessions: blob.opsSessions,
+      loadouts: blob.loadouts,
     }
   }
 
@@ -246,6 +253,7 @@ export class ApiStore implements Store {
         blueprints: state.blueprints,
         hauling: state.hauling,
         opsSessions: state.opsSessions,
+        loadouts: state.loadouts,
         rsiHandle: state.profile.rsiHandle,
       })
     }
@@ -381,6 +389,31 @@ export class ApiStore implements Store {
     blob.opsSessions = blob.opsSessions.filter((x) => x.id !== id)
     await this.saveBlob(blob)
     return blob.opsSessions
+  }
+
+  async addLoadout(loadout: Omit<Loadout, 'id'>): Promise<Loadout[]> {
+    const blob = this.cache()
+    blob.loadouts = [...blob.loadouts, { ...loadout, id: uid() }]
+    await this.saveBlob(blob)
+    return blob.loadouts
+  }
+
+  async updateLoadout(
+    id: string,
+    patch: Partial<Omit<Loadout, 'id'>>,
+  ): Promise<Loadout[]> {
+    const blob = this.cache()
+    const idx = blob.loadouts.findIndex((x) => x.id === id)
+    if (idx !== -1) blob.loadouts[idx] = { ...blob.loadouts[idx], ...patch }
+    await this.saveBlob(blob)
+    return blob.loadouts
+  }
+
+  async removeLoadout(id: string): Promise<Loadout[]> {
+    const blob = this.cache()
+    blob.loadouts = blob.loadouts.filter((x) => x.id !== id)
+    await this.saveBlob(blob)
+    return blob.loadouts
   }
 
   async getServerStatus(): Promise<ServerStatus[]> {
