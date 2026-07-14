@@ -4,6 +4,7 @@ import type {
   BlueprintEntry,
   HaulingContract,
   InventoryItem,
+  Loadout,
   OpsSession,
   PlatformStatus,
   ServerStatus,
@@ -27,6 +28,7 @@ function loadRaw(): AppState | null {
     if (!Array.isArray(parsed.blueprints)) parsed.blueprints = []
     if (!Array.isArray(parsed.hauling)) parsed.hauling = []
     if (!Array.isArray(parsed.opsSessions)) parsed.opsSessions = []
+    if (!Array.isArray(parsed.loadouts)) parsed.loadouts = []
     return parsed
   } catch {
     return null
@@ -86,6 +88,7 @@ export class LocalStore implements Store {
       blueprints: [],
       hauling: [],
       opsSessions: [],
+      loadouts: [],
     }
     persist(state)
     return state
@@ -219,6 +222,31 @@ export class LocalStore implements Store {
       s.opsSessions = s.opsSessions.filter((x) => x.id !== id)
     })
     return state.opsSessions
+  }
+
+  async addLoadout(loadout: Omit<Loadout, 'id'>): Promise<Loadout[]> {
+    const state = this.mutate((s) => {
+      s.loadouts.push({ ...loadout, id: uid() })
+    })
+    return state.loadouts
+  }
+
+  async updateLoadout(
+    id: string,
+    patch: Partial<Omit<Loadout, 'id'>>,
+  ): Promise<Loadout[]> {
+    const state = this.mutate((s) => {
+      const idx = s.loadouts.findIndex((x) => x.id === id)
+      if (idx !== -1) s.loadouts[idx] = { ...s.loadouts[idx], ...patch }
+    })
+    return state.loadouts
+  }
+
+  async removeLoadout(id: string): Promise<Loadout[]> {
+    const state = this.mutate((s) => {
+      s.loadouts = s.loadouts.filter((x) => x.id !== id)
+    })
+    return state.loadouts
   }
 
   async getServerStatus(): Promise<ServerStatus[]> {

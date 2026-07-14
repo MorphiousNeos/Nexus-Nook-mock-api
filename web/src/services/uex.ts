@@ -278,6 +278,54 @@ export async function getItemsByCategory(idCategory: number | string): Promise<I
   return out
 }
 
+export type ItemPrice = {
+  terminalName: string
+  system?: string
+  priceBuy?: number
+}
+
+/**
+ * Where an item/component can be bought (`/items_prices?id_item=<id>`), with
+ * prices. Field names on the live API are not fully confirmed — every access
+ * is defensive, and rows with neither a terminal nor a price are dropped.
+ */
+export async function getItemPrices(idItem: number | string): Promise<ItemPrice[]> {
+  const body = await uexGet<unknown>(
+    `/items_prices?id_item=${encodeURIComponent(String(idItem))}`,
+  )
+  const rows = unwrap(body)
+
+  const out: ItemPrice[] = []
+  for (const raw of rows) {
+    if (!raw || typeof raw !== 'object') continue
+    const r = raw as Record<string, unknown>
+
+    const idTerminal = r.id_terminal ?? r.terminal_id
+    const terminalName =
+      toStr(r.terminal_name) ??
+      toStr(r.terminal) ??
+      toStr(r.name_terminal) ??
+      (idTerminal !== undefined && idTerminal !== null
+        ? `Terminal #${toStr(idTerminal)}`
+        : undefined)
+
+    const system =
+      toStr(r.star_system_name) ??
+      toStr(r.system_name) ??
+      toStr(r.planet_name) ??
+      toStr(r.space_station_name) ??
+      toStr(r.orbit_name)
+
+    const priceBuy = toNumber(r.price_buy ?? r.priceBuy)
+
+    if (!terminalName && priceBuy === undefined) continue
+    out.push({ terminalName: terminalName ?? 'Unknown terminal', system, priceBuy })
+  }
+  // Cheapest first; unpriced listings sink to the bottom.
+  out.sort((a, b) => (a.priceBuy ?? Infinity) - (b.priceBuy ?? Infinity))
+  return out
+}
+
 /**
  * Fetch and normalize the commodity list. Field accesses are tolerant of the
  * live API's naming; a commodity with no usable name is dropped rather than
