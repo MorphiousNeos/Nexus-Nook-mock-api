@@ -209,6 +209,36 @@ body {
   }
 }
 
+/* Distant capital ship — very slow, stately crossing high in the scene. */
+.nn-ship-cap {
+  top: 6%;
+  animation: nn-fly-cap 150s linear infinite;
+  animation-delay: -40s;
+}
+@keyframes nn-fly-cap {
+  0% {
+    transform: translateX(-30vw) translateY(0);
+  }
+  100% {
+    transform: translateX(110vw) translateY(1.5vh);
+  }
+}
+
+/* Navigation strobes — sharp aircraft-style double-flash. */
+.nn-strobe {
+  animation: nn-strobe 2.2s steps(1) infinite;
+}
+.nn-strobe-slow {
+  animation: nn-strobe 3.4s steps(1) infinite;
+  animation-delay: 1.1s;
+}
+@keyframes nn-strobe {
+  0%, 4% { opacity: 1; }
+  5%, 9% { opacity: 0.1; }
+  10%, 14% { opacity: 1; }
+  15%, 100% { opacity: 0.1; }
+}
+
 /* Quantum travel streaks — a ship gone superluminal. */
 .nn-warp {
   position: absolute;
@@ -317,12 +347,15 @@ body {
     animation: none;
   }
   .nn-ship,
+  .nn-ship-cap,
   .nn-warp {
     display: none;
   }
   .nn-nebula,
   .nn-float,
-  .nn-title-gradient {
+  .nn-title-gradient,
+  .nn-strobe,
+  .nn-strobe-slow {
     animation: none;
   }
   .nn-rise,
