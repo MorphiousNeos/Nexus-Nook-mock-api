@@ -1,4 +1,24 @@
-import { useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+
+// Split into its own chunk: the 3D renderer is only fetched on devices that
+// will actually run it, and never blocks the app shell.
+const ShipScene3D = lazy(() => import('./ShipScene3D'))
+
+/** True when real-time 3D is both supported and appropriate here. */
+function canRender3D(): boolean {
+  if (typeof window === 'undefined') return false
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false
+  const conn = (navigator as { connection?: { saveData?: boolean } }).connection
+  if (conn?.saveData) return false
+  const mem = (navigator as { deviceMemory?: number }).deviceMemory
+  if (typeof mem === 'number' && mem < 2) return false
+  try {
+    const probe = document.createElement('canvas')
+    return !!(probe.getContext('webgl2') || probe.getContext('webgl'))
+  } catch {
+    return false
+  }
+}
 
 /**
  * Cinematic deep-space scene behind the landing hero.
@@ -471,6 +491,12 @@ function HudChrome() {
 
 export default function SpaceBackdrop() {
   const sceneRef = useRef<HTMLDivElement | null>(null)
+  // Decided after mount so the probe runs in the browser, not during render.
+  const [use3D, setUse3D] = useState(false)
+
+  useEffect(() => {
+    setUse3D(canRender3D())
+  }, [])
 
   // Pointer parallax: publish a normalized offset the layers scale differently.
   useEffect(() => {
@@ -531,27 +557,37 @@ export default function SpaceBackdrop() {
       </div>
 
       <div className="nn-plx nn-plx-mid absolute inset-0">
-        <div className="nn-ship nn-ship-2">
-          <FreighterSvg className="nn-bloom-violet h-16 w-64 opacity-70 sm:h-20 sm:w-80" />
-        </div>
-        <div className="nn-ship nn-ship-4">
-          <InterceptorSvg className="nn-bloom-cyan h-8 w-28 opacity-55" />
-        </div>
+        {!use3D && (
+          <>
+            <div className="nn-ship nn-ship-2">
+              <FreighterSvg className="nn-bloom-violet h-16 w-64 opacity-70 sm:h-20 sm:w-80" />
+            </div>
+            <div className="nn-ship nn-ship-4">
+              <InterceptorSvg className="nn-bloom-cyan h-8 w-28 opacity-55" />
+            </div>
+          </>
+        )}
         <div className="nn-warp nn-warp-1" />
         <div className="nn-warp nn-warp-2" />
       </div>
 
-      <div className="nn-plx nn-plx-near absolute inset-0">
-        <div className="nn-ship nn-ship-1">
-          <InterceptorSvg className="nn-bloom-cyan h-14 w-48 opacity-95 sm:h-16 sm:w-56" />
+      {use3D ? (
+        <Suspense fallback={null}>
+          <ShipScene3D />
+        </Suspense>
+      ) : (
+        <div className="nn-plx nn-plx-near absolute inset-0">
+          <div className="nn-ship nn-ship-1">
+            <InterceptorSvg className="nn-bloom-cyan h-14 w-48 opacity-95 sm:h-16 sm:w-56" />
+          </div>
+          <div className="nn-ship nn-ship-3">
+            <GunshipSvg className="nn-bloom-magenta h-12 w-40 opacity-90" />
+          </div>
+          <div className="nn-ship nn-ship-5">
+            <InterceptorSvg className="nn-bloom-cyan h-20 w-72 opacity-100 sm:h-24 sm:w-[22rem]" />
+          </div>
         </div>
-        <div className="nn-ship nn-ship-3">
-          <GunshipSvg className="nn-bloom-magenta h-12 w-40 opacity-90" />
-        </div>
-        <div className="nn-ship nn-ship-5">
-          <InterceptorSvg className="nn-bloom-cyan h-20 w-72 opacity-100 sm:h-24 sm:w-[22rem]" />
-        </div>
-      </div>
+      )}
 
       <HudChrome />
     </div>
