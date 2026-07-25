@@ -54,6 +54,166 @@ function sampleServers(): ServerStatus[] {
 }
 
 /**
+ * Sample content for a brand-new demo profile so every section shows a working
+ * example instead of an empty box. Every entry is labelled "(sample)" so it
+ * reads as demo data and is safe to delete. Only ever used when a profile is
+ * created for the first time — never merged into existing data.
+ */
+function seedFleet(): Ship[] {
+  return [
+    {
+      id: uid(),
+      name: 'Drake Cutlass Black (sample)',
+      manufacturer: 'Drake Interplanetary',
+      type: '46 SCU · Crew 2',
+      notes: 'Sample data · Acquired: Pledge',
+    },
+    {
+      id: uid(),
+      name: 'MISC Freelancer MAX (sample)',
+      manufacturer: 'Musashi Industrial & Starflight Concern',
+      type: '120 SCU · Crew 2',
+      notes: 'Sample data · Acquired: Bought in-game (aUEC)',
+    },
+    {
+      id: uid(),
+      name: 'RSI Aurora MR (sample)',
+      manufacturer: 'Roberts Space Industries',
+      type: '6 SCU · Crew 1',
+      notes: 'Sample data · the starter that never gets sold',
+    },
+  ]
+}
+
+function seedInventory(): InventoryItem[] {
+  return [
+    {
+      id: uid(),
+      name: 'Bolon Quantum Drive (sample)',
+      qty: 2,
+      notes: '[Quantum Drives] Spares for the Freelancer',
+    },
+    { id: uid(), name: 'MedPen (sample)', qty: 12, notes: '[Consumables] Ship locker restock' },
+    { id: uid(), name: 'Laranite (sample)', qty: 32, notes: '[Commodities] Staged at Everus Harbor' },
+    {
+      id: uid(),
+      name: 'P4-AR Rifle (sample)',
+      qty: 3,
+      notes: '[Weapons] Crew kit for salvage runs',
+    },
+  ]
+}
+
+function seedHauling(): HaulingContract[] {
+  return [
+    {
+      id: uid(),
+      name: 'Hurston loop — 4 stops (sample)',
+      reward: 184500,
+      status: 'active',
+      notes: 'Sample contract · stack the pickups, then run both drops in one loop.',
+      stops: [
+        {
+          id: uid(),
+          kind: 'pickup',
+          location: 'Lorville · Central Business District',
+          commodity: 'Titanium',
+          scu: 48,
+          done: true,
+        },
+        {
+          id: uid(),
+          kind: 'pickup',
+          location: 'HDMS-Edmond',
+          commodity: 'Agricium',
+          scu: 24,
+          done: true,
+        },
+        {
+          id: uid(),
+          kind: 'dropoff',
+          location: 'Everus Harbor',
+          commodity: 'Titanium',
+          scu: 48,
+          done: false,
+        },
+        {
+          id: uid(),
+          kind: 'dropoff',
+          location: 'Port Tressler',
+          commodity: 'Agricium',
+          scu: 24,
+          done: false,
+        },
+      ],
+    },
+  ]
+}
+
+function seedOpsSessions(): OpsSession[] {
+  return [
+    {
+      id: uid(),
+      name: 'Aaron Halo mining run (sample)',
+      activity: 'mining',
+      crew: [
+        { id: uid(), name: 'You (sample)', shares: 1 },
+        { id: uid(), name: 'Vex — laser (sample)', shares: 1 },
+        { id: uid(), name: 'Kestrel — hauler (sample)', shares: 0.5 },
+      ],
+      entries: [
+        { id: uid(), label: 'Quantainium sold · ARC-L1', amount: 412000 },
+        { id: uid(), label: 'Taranite sold · HUR-L2', amount: 96500 },
+        { id: uid(), label: 'Refinery fees', amount: -38200 },
+        { id: uid(), label: 'Fuel + repairs', amount: -12400 },
+      ],
+      closed: false,
+    },
+  ]
+}
+
+function seedBlueprints(): BlueprintEntry[] {
+  return [
+    {
+      id: uid(),
+      name: 'Ballistic Cannon Mk II (sample)',
+      category: 'Weapons',
+      status: 'found',
+      source: 'Sample entry · ground bunker contracts',
+      notes: 'Materials partly gathered — Quantanium is the blocker.',
+      materials: [
+        { id: uid(), name: 'Aluminium', need: 40, have: 40 },
+        { id: uid(), name: 'Tungsten', need: 25, have: 11 },
+        { id: uid(), name: 'Quantanium', need: 6, have: 0 },
+      ],
+    },
+  ]
+}
+
+function seedLoadouts(): Loadout[] {
+  return [
+    {
+      id: uid(),
+      name: 'Cutlass — salvage kit (sample)',
+      ship: 'Drake Cutlass Black (sample)',
+      savedInGame: true,
+      notes: 'Sample loadout · what to re-buy after a wipe.',
+      components: [
+        {
+          id: uid(),
+          name: 'Bolon Quantum Drive',
+          category: 'Quantum Drives',
+          notes: 'Long-range jumps',
+        },
+        { id: uid(), name: 'Rush Cooler', category: 'Coolers' },
+        { id: uid(), name: 'Warlock Shield Generator', category: 'Shield Generators' },
+        { id: uid(), name: 'CF-337 Panther Repeater ×2', category: 'Weapons' },
+      ],
+    },
+  ]
+}
+
+/**
  * Fully client-side store. No network, no real auth. "Login" just creates
  * or reuses a local profile in localStorage so a shared link works for anyone.
  */
@@ -83,12 +243,14 @@ export class LocalStore implements Store {
         email: input.email.trim(),
         rsiHandle: (input.rsiHandle ?? '').trim(),
       },
-      fleet: [],
-      inventory: [],
-      blueprints: [],
-      hauling: [],
-      opsSessions: [],
-      loadouts: [],
+      // First creation only — a returning profile is handled above and keeps
+      // whatever the user already has, seeded or not.
+      fleet: seedFleet(),
+      inventory: seedInventory(),
+      blueprints: seedBlueprints(),
+      hauling: seedHauling(),
+      opsSessions: seedOpsSessions(),
+      loadouts: seedLoadouts(),
     }
     persist(state)
     return state

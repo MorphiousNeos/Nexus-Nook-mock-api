@@ -6,6 +6,7 @@ import Landing from './pages/Landing'
 import PrivacyPage from './pages/PrivacyPage'
 import OverviewPage from './pages/app/OverviewPage'
 import FleetPage from './pages/app/FleetPage'
+import ShipsPage from './pages/app/ShipsPage'
 import TradePage from './pages/app/TradePage'
 import InventoryPage from './pages/app/InventoryPage'
 import BlueprintsPage from './pages/app/BlueprintsPage'
@@ -50,6 +51,7 @@ function Layout() {
               <Route index element={<OverviewPage />} />
               <Route path="overview" element={<OverviewPage />} />
               <Route path="fleet" element={<FleetPage />} />
+              <Route path="ships" element={<ShipsPage />} />
               <Route path="trade" element={<TradePage />} />
               <Route path="inventory" element={<InventoryPage />} />
               <Route path="blueprints" element={<BlueprintsPage />} />

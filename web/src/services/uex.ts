@@ -151,6 +151,119 @@ export type Vehicle = {
   manufacturer?: string
   cargo?: number
   crew?: number
+  /** Role labels; may be absent when the catalog exposes no role data. */
+  roles?: string[]
+  /** Landing-pad / size class code (e.g. "S", "XL") when reported. */
+  size?: string
+  /** Undefined when the catalog gives no signal either way. */
+  isGroundVehicle?: boolean
+}
+
+function toBool(value: unknown): boolean {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+  if (typeof value === 'string') {
+    const s = value.trim().toLowerCase()
+    return s === '1' || s === 'true' || s === 'yes'
+  }
+  return false
+}
+
+function titleCase(input: string): string {
+  return input
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ')
+}
+
+// Boolean flags that describe packaging or placement, not what a ship is for.
+const NON_ROLE_VEHICLE_FLAGS = new Set([
+  'is_addon',
+  'is_concierge',
+  'is_docking',
+  'is_ground',
+  'is_ground_vehicle',
+  'is_hangar',
+  'is_loading_dock',
+  'is_showdown_winner',
+  'is_spaceship',
+])
+
+const ROLE_LABEL_OVERRIDES: Record<string, string> = {
+  emp: 'EMP',
+  qed: 'QED',
+  datarunner: 'Data running',
+  refuel: 'Refuelling',
+  refinery: 'Refining',
+  tractor_beam: 'Tractor beam',
+}
+
+function roleLabelFromFlag(flag: string): string {
+  const key = flag.replace(/^is_/, '')
+  return ROLE_LABEL_OVERRIDES[key] ?? titleCase(key)
+}
+
+/**
+ * Role labels for one catalog row. UEX describes roles as capability booleans
+ * (`is_mining`, `is_cargo`, …) rather than a list, so labels are derived from
+ * whichever truthy flags exist; a flat `roles`/`focus` field wins when present.
+ * Returns undefined when the row carries no role signal at all.
+ */
+function pickVehicleRoles(r: Record<string, unknown>): string[] | undefined {
+  const flat = r.roles ?? r.foci ?? r.role ?? r.focus
+  const labels: string[] = []
+
+  if (Array.isArray(flat)) {
+    for (const entry of flat) {
+      if (typeof entry === 'string') {
+        if (entry.trim() !== '') labels.push(titleCase(entry))
+      } else if (entry && typeof entry === 'object') {
+        const o = entry as Record<string, unknown>
+        const name = toStr(o.name) ?? toStr(o.label) ?? toStr(o.code)
+        if (name) labels.push(titleCase(name))
+      }
+    }
+  } else {
+    const single = toStr(flat)
+    if (single) {
+      for (const part of single.split(/[,/|]/)) {
+        const trimmed = part.trim()
+        if (trimmed) labels.push(titleCase(trimmed))
+      }
+    }
+  }
+
+  if (labels.length === 0) {
+    for (const key of Object.keys(r)) {
+      if (!key.startsWith('is_') || NON_ROLE_VEHICLE_FLAGS.has(key)) continue
+      if (toBool(r[key])) labels.push(roleLabelFromFlag(key))
+    }
+  }
+
+  const unique = Array.from(new Set(labels)).sort((a, b) => a.localeCompare(b))
+  return unique.length > 0 ? unique : undefined
+}
+
+/** Short codes are uppercased ("s" → "S"); longer words are title-cased. */
+function pickVehicleSize(r: Record<string, unknown>): string | undefined {
+  const raw =
+    toStr(r.pad_type) ??
+    toStr(r.size) ??
+    toStr(r.size_class) ??
+    toStr(r.class) ??
+    toStr(r.vehicle_size)
+  const trimmed = raw?.trim()
+  if (!trimmed) return undefined
+  return /^[a-z]{1,3}$/i.test(trimmed) ? trimmed.toUpperCase() : titleCase(trimmed)
+}
+
+function pickIsGroundVehicle(r: Record<string, unknown>): boolean | undefined {
+  const ground = r.is_ground_vehicle ?? r.is_ground
+  if (ground !== undefined && ground !== null) return toBool(ground)
+  const spaceship = r.is_spaceship
+  if (spaceship !== undefined && spaceship !== null) return !toBool(spaceship)
+  return undefined
 }
 
 /**
@@ -192,7 +305,16 @@ export async function getVehicles(): Promise<Vehicle[]> {
     const id =
       typeof r.id === 'number' || typeof r.id === 'string' ? r.id : undefined
 
-    out.push({ id, name, manufacturer, cargo, crew })
+    out.push({
+      id,
+      name,
+      manufacturer,
+      cargo,
+      crew,
+      roles: pickVehicleRoles(r),
+      size: pickVehicleSize(r),
+      isGroundVehicle: pickIsGroundVehicle(r),
+    })
   }
   return out
 }

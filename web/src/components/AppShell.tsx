@@ -48,6 +48,89 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   )
 }
 
+/** Primary mobile destinations, in bar order. A path missing from NAV_ITEMS is skipped. */
+const TAB_PATHS = ['/overview', '/fleet', '/trade', '/community']
+
+function MobileTabBar({
+  pathname,
+  drawerOpen,
+  onToggleDrawer,
+  onNavigate,
+}: {
+  pathname: string
+  drawerOpen: boolean
+  onToggleDrawer: () => void
+  onNavigate: () => void
+}) {
+  const tabs = TAB_PATHS.map((to) => NAV_ITEMS.find((item) => item.to === to)).filter(
+    (item): item is (typeof NAV_ITEMS)[number] => Boolean(item),
+  )
+  if (tabs.length === 0) return null
+
+  const tabClass = (active: boolean) =>
+    `flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[11px] font-medium transition ${
+      active
+        ? 'text-purple-200'
+        : 'text-slate-400 hover:text-slate-200 active:text-slate-100'
+    }`
+
+  return (
+    <nav
+      aria-label="Primary mobile"
+      className="nn-tabbar fixed inset-x-0 bottom-0 z-40 border-t border-slate-800/70 bg-slate-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+    >
+      <div className="mx-auto flex max-w-lg items-stretch gap-1 px-2 py-1">
+        {tabs.map((item) => {
+          // The index route renders Overview, so "/" counts as the Overview tab.
+          const active =
+            !drawerOpen &&
+            (pathname === item.to || (item.to === '/overview' && pathname === '/'))
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={onNavigate}
+              aria-current={active ? 'page' : undefined}
+              className={tabClass(active)}
+            >
+              <span
+                aria-hidden
+                className={`grid h-7 w-7 place-items-center rounded-lg border text-base transition ${
+                  active
+                    ? 'border-purple-600/60 bg-purple-950/60 shadow-inner shadow-purple-900/50'
+                    : 'border-transparent'
+                }`}
+              >
+                {item.icon}
+              </span>
+              <span className="max-w-full truncate">{item.label}</span>
+            </NavLink>
+          )
+        })}
+        <button
+          type="button"
+          onClick={onToggleDrawer}
+          aria-expanded={drawerOpen}
+          aria-label={drawerOpen ? 'Close navigation' : 'More destinations'}
+          className={tabClass(drawerOpen)}
+        >
+          <span
+            aria-hidden
+            className={`grid h-7 w-7 place-items-center rounded-lg border text-base transition ${
+              drawerOpen
+                ? 'border-purple-600/60 bg-purple-950/60 shadow-inner shadow-purple-900/50'
+                : 'border-transparent'
+            }`}
+          >
+            {drawerOpen ? '✕' : '⋯'}
+          </span>
+          <span className="max-w-full truncate">More</span>
+        </button>
+      </div>
+    </nav>
+  )
+}
+
 function SidebarFooter() {
   const { isDemo, state, logout } = useSession()
   const profile = state?.profile
@@ -83,6 +166,14 @@ export default function AppShell() {
   // Close the mobile drawer whenever the route changes.
   useEffect(() => {
     setMobileOpen(false)
+  }, [location.pathname])
+
+  // Land at the top of each page. Without this the scroll offset carries over,
+  // so signing in from the bottom of the landing form opens mid-dashboard.
+  // Explicitly instant — the global `scroll-behavior: smooth` would otherwise
+  // animate every navigation.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' })
   }, [location.pathname])
 
   return (
@@ -124,7 +215,7 @@ export default function AppShell() {
               onClick={() => setMobileOpen(false)}
               aria-hidden
             />
-            <div className="fixed inset-x-0 top-[57px] z-40 max-h-[calc(100vh-57px)] overflow-y-auto border-b border-slate-800/70 bg-slate-950/95 px-4 py-5 shadow-2xl shadow-black/50">
+            <div className="fixed inset-x-0 top-[57px] z-40 max-h-[calc(100vh-57px)] overflow-y-auto border-b border-slate-800/70 bg-slate-950/95 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 shadow-2xl shadow-black/50">
               <NavLinks onNavigate={() => setMobileOpen(false)} />
               <div className="mt-5 border-t border-slate-800/70 pt-5">
                 <SidebarFooter />
@@ -133,9 +224,16 @@ export default function AppShell() {
           </div>
         )}
 
-        <main className="min-h-[60vh] flex-1">
+        <main className="min-h-[60vh] flex-1 pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:pb-0">
           <Outlet />
         </main>
+
+        <MobileTabBar
+          pathname={location.pathname}
+          drawerOpen={mobileOpen}
+          onToggleDrawer={() => setMobileOpen((o) => !o)}
+          onNavigate={() => setMobileOpen(false)}
+        />
       </div>
     </div>
   )

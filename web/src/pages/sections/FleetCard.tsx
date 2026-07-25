@@ -278,7 +278,18 @@ export default function FleetCard() {
 
       <ul className="space-y-2">
         {fleet.length === 0 && (
-          <EmptyState>No ships yet. Use “Add ship” to search the catalog.</EmptyState>
+          <EmptyState
+            icon="🚀"
+            title="No ships yet"
+            action={
+              !pickerOpen && (
+                <Button onClick={() => setPickerOpen(true)}>Add your first ship</Button>
+              )
+            }
+          >
+            Search the Star Citizen catalog — or add a ship by hand — and your hangar
+            starts filling up.
+          </EmptyState>
         )}
         {fleet.map((ship) => {
           const expanded = expandedShipId === ship.id

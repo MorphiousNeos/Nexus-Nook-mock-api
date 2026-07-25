@@ -398,7 +398,17 @@ export default function InventoryCard() {
 
       <ul className="space-y-2">
         {inventory.length === 0 && (
-          <EmptyState>Your manifest is empty. Use “Add item” to search the catalog.</EmptyState>
+          <EmptyState
+            icon="📦"
+            title="Your manifest is empty"
+            action={
+              !pickerOpen && (
+                <Button onClick={() => setPickerOpen(true)}>Add your first item</Button>
+              )
+            }
+          >
+            Track components, cargo, and gear from the catalog — or add anything by hand.
+          </EmptyState>
         )}
         {inventory.map((item) => (
           <li

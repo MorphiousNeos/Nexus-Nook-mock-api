@@ -24,6 +24,12 @@ export const NAV_ITEMS: NavItem[] = [
     description: 'Track the ships you own and the ones on your wishlist.',
   },
   {
+    to: '/ships',
+    label: 'Ships',
+    icon: '🛸',
+    description: 'Browse every ship in the verse — specs, roles, and stats side by side.',
+  },
+  {
     to: '/trade',
     label: 'Trade',
     icon: '💱',
