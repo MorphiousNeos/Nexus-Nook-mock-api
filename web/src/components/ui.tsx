@@ -121,17 +121,37 @@ export function Badge({
   )
 }
 
+/** `title` and `action` are optional — callers may pass only children. */
 export function EmptyState({
   children,
   icon,
+  title,
+  action,
 }: {
   children: ReactNode
   icon?: ReactNode
+  title?: string
+  action?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-slate-700/70 bg-slate-950/40 px-4 py-8 text-center text-sm text-slate-500">
-      {icon && <span className="text-2xl opacity-80">{icon}</span>}
-      <p>{children}</p>
+    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-700/70 bg-slate-950/40 px-4 py-8 text-center text-sm text-slate-500 sm:py-10">
+      {icon && (
+        <span
+          aria-hidden
+          className="nn-empty-glow mb-1 grid h-16 w-16 place-items-center text-3xl opacity-90 sm:h-20 sm:w-20 sm:text-4xl"
+        >
+          {icon}
+        </span>
+      )}
+      {title && (
+        <p className="font-display text-base font-semibold tracking-wide text-slate-200 sm:text-lg">
+          {title}
+        </p>
+      )}
+      <p className="max-w-sm">{children}</p>
+      {action && (
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-2">{action}</div>
+      )}
     </div>
   )
 }

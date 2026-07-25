@@ -133,7 +133,7 @@ export default function TradeCard() {
     <Card title="Trade" icon="💱">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-slate-400">
-          Live Star Citizen commodity prices — no login needed.
+          Live Star Citizen commodity prices — tap a row for every terminal trading it.
         </p>
         <Button variant="ghost" onClick={load} disabled={loading}>
           {loading ? 'Loading…' : 'Refresh'}
@@ -186,7 +186,11 @@ export default function TradeCard() {
                 : 'No commodities match your filter.'}
             </EmptyState>
           ) : (
-            <div className="max-h-80 overflow-y-auto rounded-lg border border-slate-800">
+            <div
+              className={`overflow-y-auto rounded-lg border border-slate-800 ${
+                selectedId ? 'max-h-[34rem]' : 'max-h-80'
+              }`}
+            >
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-slate-900/95 text-left text-xs uppercase tracking-wider text-slate-400 backdrop-blur">
                   <tr>
@@ -261,6 +265,7 @@ export default function TradeCard() {
                                 loading={routeLoading}
                                 error={routeError}
                                 rows={key !== undefined ? priceCache[key] : undefined}
+                                commodityName={c.name}
                               />
                             </td>
                           </tr>
