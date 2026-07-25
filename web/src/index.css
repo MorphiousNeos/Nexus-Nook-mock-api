@@ -159,53 +159,121 @@ body {
     0 -1px 80px rgba(59, 130, 246, 0.22);
 }
 
-/* Ships crossing the viewport. Paths + speeds vary per ship. */
+/* Parallax rig. The scene publishes a normalized pointer offset and each
+   depth consumes a different share of it, so the layers separate as the
+   cursor moves. Defaults keep the scene centred before any pointer input. */
+.nn-scene {
+  --nn-px: 0;
+  --nn-py: 0;
+}
+.nn-plx {
+  will-change: transform;
+}
+.nn-plx-far {
+  transform: translate3d(calc(var(--nn-px) * 8px), calc(var(--nn-py) * 8px), 0);
+}
+.nn-plx-deep {
+  transform: translate3d(calc(var(--nn-px) * 18px), calc(var(--nn-py) * 14px), 0);
+}
+.nn-plx-mid {
+  transform: translate3d(calc(var(--nn-px) * 34px), calc(var(--nn-py) * 24px), 0);
+}
+.nn-plx-near {
+  transform: translate3d(calc(var(--nn-px) * 58px), calc(var(--nn-py) * 40px), 0);
+}
+
+/* Engine bloom. Layered drop-shadows read as light spill off the thrusters. */
+.nn-bloom-cyan {
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.55))
+    drop-shadow(0 0 22px rgba(14, 165, 233, 0.35));
+}
+.nn-bloom-violet {
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.5))
+    drop-shadow(0 0 24px rgba(124, 58, 237, 0.32));
+}
+.nn-bloom-magenta {
+  filter: drop-shadow(0 0 6px rgba(232, 121, 249, 0.5))
+    drop-shadow(0 0 22px rgba(217, 70, 239, 0.3));
+}
+
+/* Ships crossing the viewport. Paths, speeds and bank angles vary per ship. */
 .nn-ship {
   position: absolute;
   left: 0;
   will-change: transform;
 }
 .nn-ship-1 {
-  top: 16%;
-  animation: nn-fly-a 26s linear infinite;
+  top: 14%;
+  animation: nn-fly-a 17s cubic-bezier(0.4, 0, 0.7, 1) infinite;
 }
 .nn-ship-2 {
-  top: 34%;
-  animation: nn-fly-b 44s linear infinite;
-  animation-delay: -18s;
+  top: 36%;
+  animation: nn-fly-b 34s linear infinite;
+  animation-delay: -14s;
 }
 .nn-ship-3 {
-  top: 62%;
-  animation: nn-fly-a 19s linear infinite;
-  animation-delay: -7s;
+  top: 64%;
+  animation: nn-fly-c 13s cubic-bezier(0.35, 0, 0.65, 1) infinite;
+  animation-delay: -5s;
 }
 .nn-ship-4 {
-  top: 8%;
-  animation: nn-fly-c 34s linear infinite;
-  animation-delay: -26s;
+  top: 7%;
+  animation: nn-fly-d 26s linear infinite;
+  animation-delay: -19s;
+}
+/* The close pass: large, fast, steeply banked — the aggressive one. */
+.nn-ship-5 {
+  top: 74%;
+  animation: nn-fly-close 21s cubic-bezier(0.5, 0, 0.75, 1) infinite;
+  animation-delay: -12s;
 }
 @keyframes nn-fly-a {
   0% {
-    transform: translateX(-15vw) translateY(0) rotate(-2deg);
+    transform: translate3d(-22vw, 4vh, 0) rotate(-7deg);
+  }
+  45% {
+    transform: translate3d(40vw, -1vh, 0) rotate(-3deg);
   }
   100% {
-    transform: translateX(115vw) translateY(-6vh) rotate(-2deg);
+    transform: translate3d(125vw, -9vh, 0) rotate(-11deg);
   }
 }
 @keyframes nn-fly-b {
   0% {
-    transform: translateX(-20vw) translateY(0);
+    transform: translate3d(-28vw, 0, 0) rotate(1deg);
   }
   100% {
-    transform: translateX(115vw) translateY(3vh);
+    transform: translate3d(125vw, 4vh, 0) rotate(-1deg);
   }
 }
 @keyframes nn-fly-c {
   0% {
-    transform: translateX(115vw) translateY(0) scaleX(-1) rotate(2deg);
+    transform: translate3d(-20vw, 0, 0) rotate(6deg);
+  }
+  50% {
+    transform: translate3d(45vw, 5vh, 0) rotate(-2deg);
   }
   100% {
-    transform: translateX(-15vw) translateY(4vh) scaleX(-1) rotate(2deg);
+    transform: translate3d(125vw, -4vh, 0) rotate(8deg);
+  }
+}
+@keyframes nn-fly-d {
+  0% {
+    transform: translate3d(125vw, 0, 0) scaleX(-1) rotate(4deg);
+  }
+  100% {
+    transform: translate3d(-22vw, 6vh, 0) scaleX(-1) rotate(-2deg);
+  }
+}
+@keyframes nn-fly-close {
+  0% {
+    transform: translate3d(-30vw, 8vh, 0) rotate(-14deg) scale(0.85);
+  }
+  40% {
+    transform: translate3d(35vw, -2vh, 0) rotate(-6deg) scale(1.05);
+  }
+  100% {
+    transform: translate3d(132vw, -16vh, 0) rotate(-18deg) scale(1.2);
   }
 }
 
@@ -279,6 +347,74 @@ body {
     opacity: 0;
     transform: translateX(130vw);
   }
+}
+
+/* =============================================================================
+   HUD CHROME — corner brackets, tracking reticle, scanlines, vignette.
+   ============================================================================= */
+
+.nn-hud {
+  position: absolute;
+  inset: 0;
+  color: rgba(125, 211, 252, 0.5);
+}
+.nn-hud-corner {
+  position: absolute;
+  width: 3.25rem;
+  height: 3.25rem;
+  opacity: 0.75;
+}
+.nn-hud-tl { top: 0.75rem; left: 0.75rem; }
+.nn-hud-tr { top: 0.75rem; right: 0.75rem; }
+.nn-hud-bl { bottom: 0.75rem; left: 0.75rem; }
+.nn-hud-br { bottom: 0.75rem; right: 0.75rem; }
+
+/* Reticle drifts and re-locks, as though tracking traffic across the field. */
+.nn-reticle {
+  position: absolute;
+  top: 22%;
+  left: 62%;
+  width: 5rem;
+  height: 5rem;
+  color: rgba(56, 189, 248, 0.45);
+  animation: nn-reticle-track 23s ease-in-out infinite;
+}
+.nn-reticle svg {
+  width: 100%;
+  height: 100%;
+  animation: nn-reticle-lock 4.5s ease-in-out infinite;
+}
+@keyframes nn-reticle-track {
+  0%, 100% { transform: translate(0, 0); }
+  30% { transform: translate(-26vw, 14vh); }
+  62% { transform: translate(-6vw, 40vh); }
+}
+@keyframes nn-reticle-lock {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(0.94); }
+}
+
+/* Very low-contrast CRT scanlines. Enough to feel like glass, not a filter. */
+.nn-scanlines {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(148, 163, 184, 0.05) 0px,
+    rgba(148, 163, 184, 0.05) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  mix-blend-mode: overlay;
+}
+
+/* Cinematic falloff so the hero copy always sits on the darkest area. */
+.nn-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 45%, transparent 45%, rgba(2, 6, 23, 0.55) 100%),
+    linear-gradient(to bottom, rgba(2, 6, 23, 0.35) 0%, transparent 22%, transparent 70%, rgba(2, 6, 23, 0.5) 100%);
 }
 
 /* Hero entrance choreography. */
@@ -384,15 +520,24 @@ body {
   }
   .nn-ship,
   .nn-ship-cap,
-  .nn-warp {
+  .nn-warp,
+  .nn-scanlines {
     display: none;
   }
   .nn-nebula,
   .nn-float,
   .nn-title-gradient,
   .nn-strobe,
-  .nn-strobe-slow {
+  .nn-strobe-slow,
+  .nn-reticle,
+  .nn-reticle svg {
     animation: none;
+  }
+  .nn-plx-far,
+  .nn-plx-deep,
+  .nn-plx-mid,
+  .nn-plx-near {
+    transform: none;
   }
   .nn-rise,
   .nn-rise-1,
