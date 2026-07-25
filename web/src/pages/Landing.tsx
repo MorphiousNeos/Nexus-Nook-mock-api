@@ -80,23 +80,36 @@ export default function Landing() {
       <SpaceBackdrop />
       <main className="relative mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-2 md:items-center md:py-20">
       <section className="text-center md:text-left">
-        <div className="nn-rise nn-rise-1 mb-5 inline-flex items-center gap-2 rounded-full border border-purple-700/50 bg-purple-950/40 px-3 py-1 text-xs uppercase tracking-widest text-purple-200 backdrop-blur">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-purple-300" aria-hidden />
+        <div className="nn-rise nn-rise-1 mb-6 inline-flex items-center gap-2 border border-cyan-400/30 bg-cyan-950/20 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.25em] text-cyan-300/90 backdrop-blur">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.9)]" aria-hidden />
           Unofficial fan companion
         </div>
-        <div className="nn-rise nn-rise-2 mb-6 flex items-center justify-center gap-4 md:justify-start">
+        <div className="nn-rise nn-rise-2 mb-5">
           <img
             src="./icon.svg"
             alt="Nexus Nook"
             width={64}
             height={64}
-            className="nn-float h-16 w-16 drop-shadow-[0_0_24px_rgba(124,58,237,0.6)]"
+            className="nn-float mx-auto mb-4 h-14 w-14 drop-shadow-[0_0_28px_rgba(124,58,237,0.75)] md:mx-0 md:h-16 md:w-16"
           />
-          <h1 className="font-display text-5xl font-bold leading-tight md:text-6xl">
-            <span className="nn-title-gradient">Nexus Nook</span>
+          <h1 className="font-display text-[3.5rem] font-black uppercase leading-[0.82] tracking-tighter sm:text-7xl lg:text-8xl">
+            <span className="nn-title-gradient drop-shadow-[0_0_40px_rgba(124,58,237,0.5)]">
+              Nexus
+              <br />
+              Nook
+            </span>
           </h1>
         </div>
-        <p className="nn-rise nn-rise-3 mt-4 text-lg text-slate-300">
+        <div className="nn-rise nn-rise-3 mb-6 flex items-center justify-center gap-3 md:justify-start">
+          <span
+            className="h-px w-10 bg-gradient-to-r from-cyan-400 to-transparent"
+            aria-hidden
+          />
+          <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-slate-400 [text-shadow:0_2px_10px_rgb(2_6_23)]">
+            Star Citizen Companion
+          </span>
+        </div>
+        <p className="nn-rise nn-rise-3 mt-4 text-lg font-medium text-slate-200 md:text-xl">
           Your cockpit for the whole verse. Fleet, trade routes, hauling, crafting,
           mining crews, live timers, and a community — one app, in your pocket.
         </p>
