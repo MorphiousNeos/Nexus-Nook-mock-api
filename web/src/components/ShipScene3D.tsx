@@ -296,7 +296,11 @@ class Parts {
     place?: (g: THREE.BufferGeometry) => void,
   ) {
     place?.(geo)
-    this[bucket].push(geo)
+    // Merging refuses to mix indexed and non-indexed geometry and returns null
+    // rather than throwing, which silently drops an entire bucket — the lofted
+    // hulls are indexed while the block primitives are not. Normalising here
+    // keeps every bucket mergeable no matter what it was built from.
+    this[bucket].push(geo.index ? geo.toNonIndexed() : geo)
   }
 }
 
@@ -317,6 +321,179 @@ function slab(w: number, h: number, d: number, r = 0.05) {
 function cyl(rt: number, rb: number, h: number, seg = 12) {
   const g = new THREE.CylinderGeometry(rt, rb, h, seg)
   g.rotateZ(Math.PI / 2)
+  return g
+}
+
+/**
+ * One cross-section of a lofted hull.
+ *
+ * `power` shapes the section between a circle and a rectangle: 2 is a true
+ * ellipse, 4 reads as a chined "squircle", 8+ is nearly a rounded box. Varying
+ * it down the length is what gives a fuselage a round nose that flattens into
+ * chined flanks and a boxy engine deck — the thing a stack of blocks can never
+ * do.
+ */
+type Station = {
+  x: number
+  /** Half-width (span) and half-height at this station. */
+  hw: number
+  hh: number
+  /** Vertical offset of the section centre, for a cambered spine. */
+  y?: number
+  power?: number
+}
+
+/** Catmull-Rom through scalar keyframes, clamped at the ends. */
+function splineAt(values: number[], t: number): number {
+  const n = values.length - 1
+  const f = Math.max(0, Math.min(1, t)) * n
+  const i = Math.min(Math.floor(f), n - 1)
+  const s = f - i
+  const p0 = values[Math.max(i - 1, 0)]
+  const p1 = values[i]
+  const p2 = values[i + 1]
+  const p3 = values[Math.min(i + 2, n)]
+  return (
+    0.5 *
+    (2 * p1 +
+      (-p0 + p2) * s +
+      (2 * p0 - 5 * p1 + 4 * p2 - p3) * s * s +
+      (-p0 + 3 * p1 - 3 * p2 + p3) * s * s * s)
+  )
+}
+
+/**
+ * Loft a smooth hull through the given stations. Sections are resampled along
+ * a spline so the surface flows rather than stepping, and normals are averaged
+ * across the seam so no crease shows down the side of the ship.
+ */
+function loftHull(stations: Station[], radial = 28, rings = 46): THREE.BufferGeometry {
+  const xs = stations.map((s) => s.x)
+  const hws = stations.map((s) => s.hw)
+  const hhs = stations.map((s) => s.hh)
+  const ys = stations.map((s) => s.y ?? 0)
+  const ps = stations.map((s) => s.power ?? 3)
+
+  const cols = radial + 1 // duplicate the seam column so UVs wrap cleanly
+  const pos: number[] = []
+  const uv: number[] = []
+  const idx: number[] = []
+
+  for (let i = 0; i < rings; i++) {
+    const t = i / (rings - 1)
+    const x = splineAt(xs, t)
+    const hw = Math.max(splineAt(hws, t), 0.0001)
+    const hh = Math.max(splineAt(hhs, t), 0.0001)
+    const yc = splineAt(ys, t)
+    const power = Math.max(splineAt(ps, t), 2)
+    const e = 2 / power
+
+    for (let j = 0; j < cols; j++) {
+      const a = (j / radial) * Math.PI * 2
+      const ca = Math.cos(a)
+      const sa = Math.sin(a)
+      // Superellipse: sign-preserving power keeps the section symmetric.
+      const z = hw * Math.sign(ca) * Math.pow(Math.abs(ca), e)
+      const y = hh * Math.sign(sa) * Math.pow(Math.abs(sa), e)
+      pos.push(x, yc + y, z)
+      uv.push(j / radial, t)
+    }
+  }
+
+  // Stations are authored nose-to-tail, so X decreases as the ring index
+  // rises. This winding is the one that leaves normals pointing outward for
+  // that direction; the opposite order culls every visible face.
+  for (let i = 0; i < rings - 1; i++) {
+    for (let j = 0; j < radial; j++) {
+      const a = i * cols + j
+      const b = a + cols
+      idx.push(a, a + 1, b, a + 1, b + 1, b)
+    }
+  }
+
+  // Flat caps at each end so the hull is closed where it is cut off.
+  for (const end of [0, rings - 1]) {
+    const centre = pos.length / 3
+    const t = end / (rings - 1)
+    pos.push(splineAt(xs, t), splineAt(ys, t), 0)
+    uv.push(0.5, t)
+    for (let j = 0; j < radial; j++) {
+      const a = end * cols + j
+      const b = end * cols + j + 1
+      if (end === 0) idx.push(centre, a, b)
+      else idx.push(centre, b, a)
+    }
+  }
+
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2))
+  geo.setIndex(idx)
+  geo.computeVertexNormals()
+
+  // Whether the winding lands outward depends on whether the stations were
+  // authored nose-to-tail or the reverse. Rather than depend on the caller
+  // getting that right — an inside-out hull is invisible, since every facing
+  // triangle is culled — test one normal against the outward direction from
+  // its own section centre and flip the whole surface if it came out inverted.
+  {
+    const posAttr = geo.getAttribute('position') as THREE.BufferAttribute
+    const nrmAttr = geo.getAttribute('normal') as THREE.BufferAttribute
+    const mid = Math.floor(rings / 2)
+    const v = mid * cols // j = 0 sits on the +Z flank
+    const t = mid / (rings - 1)
+    const outY = posAttr.getY(v) - splineAt(ys, t)
+    const outZ = posAttr.getZ(v)
+    const dot = nrmAttr.getY(v) * outY + nrmAttr.getZ(v) * outZ
+    if (dot < 0) {
+      for (let i = 0; i < idx.length; i += 3) {
+        const swap = idx[i + 1]
+        idx[i + 1] = idx[i + 2]
+        idx[i + 2] = swap
+      }
+      geo.setIndex(idx)
+      geo.computeVertexNormals()
+    }
+  }
+
+  // The seam column holds duplicate vertices; averaging their normals removes
+  // the visible crease that would otherwise run the length of the hull.
+  const nrm = geo.getAttribute('normal') as THREE.BufferAttribute
+  for (let i = 0; i < rings; i++) {
+    const a = i * cols
+    const b = a + radial
+    const nx = (nrm.getX(a) + nrm.getX(b)) / 2
+    const ny = (nrm.getY(a) + nrm.getY(b)) / 2
+    const nz = (nrm.getZ(a) + nrm.getZ(b)) / 2
+    const l = Math.hypot(nx, ny, nz) || 1
+    nrm.setXYZ(a, nx / l, ny / l, nz / l)
+    nrm.setXYZ(b, nx / l, ny / l, nz / l)
+  }
+  nrm.needsUpdate = true
+  return geo
+}
+
+/** Swept aerofoil with curved leading and trailing edges. */
+function curvedWing(span: number, rootChord: number, sweep: number, thick: number) {
+  const s = new THREE.Shape()
+  s.moveTo(rootChord / 2, 0)
+  // Leading edge sweeps back on a curve rather than a straight taper.
+  s.quadraticCurveTo(rootChord * 0.15 - sweep * 0.3, span * 0.55, -sweep, span)
+  s.lineTo(-sweep - rootChord * 0.16, span)
+  // Trailing edge curves back in toward the root.
+  s.quadraticCurveTo(-rootChord * 0.55, span * 0.42, -rootChord / 2, 0)
+  s.closePath()
+
+  const g = new THREE.ExtrudeGeometry(s, {
+    depth: thick,
+    bevelEnabled: true,
+    bevelSize: thick * 0.42,
+    bevelThickness: thick * 0.42,
+    bevelSegments: 3,
+    curveSegments: 14,
+  })
+  g.translate(0, 0, -thick / 2)
+  g.rotateX(-Math.PI / 2)
   return g
 }
 
@@ -348,63 +525,87 @@ function buildInterceptor(): Built {
   const p = new Parts()
   const thrusters: THREE.Vector3[] = []
 
-  // One continuous fuselage carries the whole ship. Everything after this
-  // overlaps it rather than sitting beside it — a gap anywhere reads as loose
-  // parts flying in formation instead of a single machine.
-  p.add('hull', slab(4.4, 0.82, 1.15, 0.1), (g) => g.translate(0, 0, 0))
-  // Tapered nose, sunk well into the fuselage.
-  p.add('hull', slab(1.5, 0.6, 0.8, 0.08), (g) => g.translate(2.35, -0.04, 0))
-  p.add('accent', slab(0.9, 0.42, 0.55, 0.06), (g) => g.translate(3.0, -0.06, 0))
-  // Dorsal spine and ventral keel, both embedded.
-  p.add('accent', slab(3.0, 0.4, 0.78, 0.07), (g) => g.translate(-0.15, 0.52, 0))
-  p.add('trim', slab(2.6, 0.34, 0.66, 0.06), (g) => g.translate(-0.3, -0.5, 0))
+  // A single lofted fuselage: a fine point at the nose that swells into a
+  // chined body and squares off into the engine deck. The section power is
+  // what does the work — round at the front, hard-edged aft.
+  p.add('hull', loftHull([
+    { x: 2.95, hw: 0.02, hh: 0.02, power: 2 },
+    { x: 2.45, hw: 0.2, hh: 0.16, y: -0.03, power: 2.2 },
+    { x: 1.7, hw: 0.42, hh: 0.3, y: -0.02, power: 2.6 },
+    { x: 0.8, hw: 0.62, hh: 0.42, power: 3.2 },
+    { x: -0.2, hw: 0.7, hh: 0.46, power: 3.8 },
+    { x: -1.3, hw: 0.62, hh: 0.44, power: 4.6 },
+    { x: -2.2, hw: 0.5, hh: 0.4, power: 6 },
+    { x: -2.5, hw: 0.46, hh: 0.37, power: 6 },
+  ]))
 
-  // Shoulders that blend the wings into the body instead of butting against it.
+  // Cambered dorsal spine, lofted so it blends into the back rather than
+  // sitting on it as a separate lump.
+  p.add('accent', loftHull([
+    { x: 1.5, hw: 0.02, hh: 0.02, y: 0.3, power: 2 },
+    { x: 0.7, hw: 0.26, hh: 0.14, y: 0.42, power: 3 },
+    { x: -0.6, hw: 0.3, hh: 0.17, y: 0.46, power: 3.4 },
+    { x: -1.9, hw: 0.22, hh: 0.12, y: 0.4, power: 4 },
+    { x: -2.4, hw: 0.02, hh: 0.02, y: 0.34, power: 4 },
+  ], 20, 26))
+
+  // Ventral fairing.
+  p.add('trim', loftHull([
+    { x: 1.6, hw: 0.02, hh: 0.02, y: -0.3, power: 2 },
+    { x: 0.4, hw: 0.34, hh: 0.14, y: -0.44, power: 3 },
+    { x: -1.2, hw: 0.36, hh: 0.15, y: -0.46, power: 3.4 },
+    { x: -2.3, hw: 0.02, hh: 0.02, y: -0.38, power: 3 },
+  ], 20, 26))
+
   for (const s of [1, -1]) {
-    p.add('hull', slab(2.6, 0.5, 0.7, 0.08), (g) => g.translate(-0.2, -0.05, s * 0.72))
-    p.add('hull', slab(2.0, 0.26, 1.5, 0.06), (g) => {
-      g.rotateX(s * 0.16)
-      g.translate(-0.45, -0.06, s * 1.35)
+    // Curved swept wing, rooted inside the fuselage.
+    p.add('hull', curvedWing(1.7, 1.5, 0.85, 0.13), (g) => {
+      g.rotateX(s * 0.14)
+      g.scale(1, 1, s)
+      g.translate(-0.35, -0.06, s * 0.5)
     })
-    p.add('accent', slab(0.9, 0.2, 0.9, 0.05), (g) => {
-      g.rotateX(s * 0.16)
-      g.translate(-0.7, -0.02, s * 1.75)
+    p.add('accent', curvedWing(0.85, 0.8, 0.4, 0.14), (g) => {
+      g.rotateX(s * 0.14)
+      g.scale(1, 1, s)
+      g.translate(-0.5, -0.04, s * 0.72)
     })
-    // Wingtip fin, rooted into the wing.
-    p.add('trim', slab(0.7, 0.62, 0.12, 0.05), (g) => {
-      g.rotateZ(0.22)
-      g.translate(-0.95, 0.3, s * 2.02)
+    // Wingtip fin, swept and thin.
+    p.add('trim', curvedWing(0.55, 0.6, 0.3, 0.07), (g) => {
+      g.rotateX(Math.PI / 2)
+      g.rotateZ(0.2)
+      g.translate(-1.0, 0.22, s * 1.98)
     })
 
-    // Engine nacelle buried into the shoulder, not stuck on the end of it.
-    p.add('hull', slab(1.7, 0.62, 0.62, 0.12), (g) => g.translate(-1.75, -0.02, s * 0.66))
-    p.add('trim', cyl(0.3, 0.32, 0.22, 16), (g) => g.translate(-2.45, -0.02, s * 0.66))
-    p.add('trim', cyl(0.26, 0.3, 0.16, 16), (g) => g.translate(-2.62, -0.02, s * 0.66))
-    thrusters.push(new THREE.Vector3(-2.72, -0.02, s * 0.66))
+    // Lofted nacelle: an intake lip that fairs smoothly into the exhaust bell.
+    p.add('hull', loftHull([
+      { x: 0.35, hw: 0.02, hh: 0.02, power: 2 },
+      { x: 0.1, hw: 0.24, hh: 0.24, power: 2 },
+      { x: -0.7, hw: 0.3, hh: 0.3, power: 2.4 },
+      { x: -1.5, hw: 0.28, hh: 0.28, power: 2.6 },
+      { x: -1.85, hw: 0.32, hh: 0.32, power: 2.4 },
+      { x: -2.0, hw: 0.26, hh: 0.26, power: 2.2 },
+    ], 22, 30), (g) => g.translate(-0.6, -0.02, s * 0.74))
 
-    // Intake mouth: a dark recess cut into the shoulder with a lipped edge.
-    p.add('trim', slab(0.5, 0.3, 0.42, 0.04), (g) => g.translate(0.55, 0.0, s * 0.78))
-    p.add('accent', slab(0.16, 0.36, 0.5, 0.04), (g) => g.translate(0.85, 0.0, s * 0.78))
+    p.add('trim', cyl(0.2, 0.24, 0.14, 20), (g) => g.translate(-2.68, -0.02, s * 0.74))
+    thrusters.push(new THREE.Vector3(-2.78, -0.02, s * 0.74))
 
-    // Hardpoints under the wing root.
-    p.add('trim', slab(0.7, 0.16, 0.2, 0.04), (g) => g.translate(0.1, -0.34, s * 1.05))
-    p.add('trim', cyl(0.1, 0.12, 0.9, 10), (g) => g.translate(0.1, -0.46, s * 1.05))
+    // Intake shoulder blended into the flank.
+    p.add('accent', loftHull([
+      { x: 0.9, hw: 0.02, hh: 0.02, power: 2 },
+      { x: 0.55, hw: 0.16, hh: 0.2, power: 2.6 },
+      { x: -0.3, hw: 0.18, hh: 0.22, power: 3 },
+      { x: -0.7, hw: 0.02, hh: 0.02, power: 3 },
+    ], 18, 22), (g) => g.translate(0.2, 0.02, s * 0.66))
 
-    greebleRun(p, 9, -1.6, 1.6, 0.4, s * 0.3, 0.3)
-    greebleRun(p, 6, -1.2, 0.9, -0.66, s * 0.28, 0.22)
+    p.add('trim', cyl(0.07, 0.08, 0.9, 12), (g) => g.translate(0.35, -0.4, s * 0.95))
+    greebleRun(p, 8, -1.6, 1.2, 0.42, s * 0.3, 0.26)
   }
 
-  // Canopy set into a raised frame so the glass sits in the hull, not on it.
-  p.add('trim', slab(1.15, 0.3, 0.72, 0.06), (g) => g.translate(1.25, 0.34, 0))
-  const canopy = new THREE.SphereGeometry(0.36, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2)
-  canopy.scale(1.7, 0.72, 0.86)
-  canopy.translate(1.3, 0.45, 0)
+  // Canopy blister faired into the spine.
+  const canopy = new THREE.SphereGeometry(0.34, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2)
+  canopy.scale(1.9, 0.62, 0.9)
+  canopy.translate(1.3, 0.3, 0)
   p.add('glass', canopy)
-
-  p.add('trim', cyl(0.014, 0.024, 0.6, 6), (g) => {
-    g.rotateZ(Math.PI / 2)
-    g.translate(-0.9, 0.92, 0.2)
-  })
 
   return { group: assemble(p), thrusters }
 }
@@ -413,53 +614,61 @@ function buildHauler(): Built {
   const p = new Parts()
   const thrusters: THREE.Vector3[] = []
 
-  // The hero silhouette: one long, deep primary hull that dominates every
-  // other volume. Detail is layered onto it at a much smaller scale, which is
-  // what gives an industrial ship its sense of size.
-  p.add('hull', slab(6.2, 1.5, 2.3, 0.14), (g) => g.translate(0, 0, 0))
-  p.add('trim', slab(5.4, 0.55, 1.9, 0.1), (g) => g.translate(-0.2, -0.85, 0))
-  p.add('accent', slab(5.0, 0.3, 2.42, 0.07), (g) => g.translate(-0.1, 0.2, 0))
+  // Industrial hulls stay boxy on purpose — that is the language of a working
+  // freighter — but the primary volume is lofted so the flanks curve and the
+  // bow tapers instead of ending in a flat face.
+  p.add('hull', loftHull([
+    { x: 3.6, hw: 0.5, hh: 0.42, power: 4 },
+    { x: 2.9, hw: 0.95, hh: 0.72, power: 4.5 },
+    { x: 1.6, hw: 1.2, hh: 0.85, power: 6 },
+    { x: -0.6, hw: 1.25, hh: 0.9, power: 8 },
+    { x: -2.4, hw: 1.15, hh: 0.88, power: 8 },
+    { x: -3.3, hw: 1.0, hh: 0.8, power: 7 },
+  ], 30, 40))
 
-  // Cargo deck: a raised spine with containers recessed into it.
-  p.add('hull', slab(4.2, 0.8, 1.9, 0.1), (g) => g.translate(-0.4, 0.95, 0))
+  p.add('trim', slab(5.4, 0.55, 1.9, 0.1), (g) => g.translate(-0.2, -0.85, 0))
+  p.add('accent', slab(5.0, 0.28, 2.46, 0.07), (g) => g.translate(-0.1, 0.16, 0))
+
+  p.add('hull', slab(4.2, 0.8, 1.9, 0.1), (g) => g.translate(-0.4, 0.92, 0))
   for (let i = 0; i < 4; i++) {
     const x = -1.95 + i * 1.02
-    p.add('accent', slab(0.86, 0.66, 1.62, 0.06), (g) => g.translate(x, 1.28, 0))
-    p.add('trim', slab(0.1, 0.7, 1.66, 0.03), (g) => g.translate(x - 0.42, 1.28, 0))
-    p.add('trim', slab(0.1, 0.7, 1.66, 0.03), (g) => g.translate(x + 0.42, 1.28, 0))
+    p.add('accent', slab(0.86, 0.66, 1.62, 0.06), (g) => g.translate(x, 1.24, 0))
+    p.add('trim', slab(0.1, 0.7, 1.66, 0.03), (g) => g.translate(x - 0.42, 1.24, 0))
+    p.add('trim', slab(0.1, 0.7, 1.66, 0.03), (g) => g.translate(x + 0.42, 1.24, 0))
   }
 
-  // Forward superstructure, stepping down to the nose.
-  p.add('hull', slab(1.5, 1.2, 1.8, 0.1), (g) => g.translate(2.5, 0.35, 0))
-  p.add('accent', slab(0.9, 0.7, 1.4, 0.08), (g) => g.translate(3.3, 0.15, 0))
-  p.add('trim', slab(1.1, 0.5, 1.5, 0.06), (g) => g.translate(2.7, 0.95, 0))
+  p.add('hull', slab(1.4, 1.1, 1.7, 0.12), (g) => g.translate(2.45, 0.3, 0))
+  p.add('trim', slab(1.1, 0.5, 1.5, 0.06), (g) => g.translate(2.7, 0.88, 0))
   const band = slab(0.75, 0.3, 1.2, 0.05)
-  band.translate(3.05, 0.92, 0)
+  band.translate(3.0, 0.86, 0)
   p.add('glass', band)
 
-  // Side sponsons cut into the flanks, each carrying its own hardware.
   for (const s of [1, -1]) {
-    p.add('hull', slab(3.4, 0.9, 0.75, 0.1), (g) => g.translate(-0.3, -0.2, s * 1.28))
-    p.add('trim', slab(1.5, 0.5, 0.5, 0.06), (g) => g.translate(0.6, -0.2, s * 1.5))
-    p.add('accent', slab(0.7, 0.5, 0.6, 0.05), (g) => g.translate(-1.5, -0.2, s * 1.52))
-    // Radiator stack, rooted into the sponson.
+    // Sponsons lofted so they fair into the flank.
+    p.add('hull', loftHull([
+      { x: 1.9, hw: 0.02, hh: 0.02, power: 2 },
+      { x: 1.2, hw: 0.32, hh: 0.42, power: 3 },
+      { x: -0.6, hw: 0.38, hh: 0.46, power: 3.6 },
+      { x: -2.0, hw: 0.3, hh: 0.4, power: 4 },
+      { x: -2.5, hw: 0.02, hh: 0.02, power: 3 },
+    ], 22, 28), (g) => g.translate(-0.2, -0.2, s * 1.3))
+
+    p.add('accent', slab(0.7, 0.5, 0.6, 0.05), (g) => g.translate(-1.5, -0.2, s * 1.55))
     for (let i = 0; i < 4; i++) {
       p.add('trim', slab(0.4, 0.5, 0.07, 0.03), (g) =>
-        g.translate(-1.9 + i * 0.42, 0.62, s * 1.2),
+        g.translate(-1.9 + i * 0.42, 0.6, s * 1.2),
       )
     }
-    greebleRun(p, 14, -2.4, 2.2, 1.7, s * 0.6, 0.5)
-    greebleRun(p, 10, -2.0, 1.6, -1.15, s * 0.7, 0.4)
+    greebleRun(p, 14, -2.4, 2.2, 1.66, s * 0.6, 0.5)
+    greebleRun(p, 10, -2.0, 1.6, -1.12, s * 0.7, 0.4)
   }
 
-  // Engine block: a mass in its own right, sunk into the hull's tail.
-  p.add('hull', slab(1.5, 1.9, 2.5, 0.12), (g) => g.translate(-3.0, 0.0, 0))
-  p.add('accent', slab(0.4, 1.7, 2.3, 0.08), (g) => g.translate(-3.6, 0.0, 0))
+  p.add('hull', slab(1.5, 1.9, 2.5, 0.14), (g) => g.translate(-3.1, 0.0, 0))
+  p.add('accent', slab(0.4, 1.7, 2.3, 0.08), (g) => g.translate(-3.7, 0.0, 0))
   for (const y of [0.5, -0.5]) {
     for (const z of [0.62, -0.62]) {
-      p.add('trim', cyl(0.32, 0.36, 0.4, 16), (g) => g.translate(-3.85, y, z))
-      p.add('trim', cyl(0.27, 0.32, 0.16, 16), (g) => g.translate(-4.05, y, z))
-      thrusters.push(new THREE.Vector3(-4.15, y, z))
+      p.add('trim', cyl(0.3, 0.34, 0.36, 18), (g) => g.translate(-3.95, y, z))
+      thrusters.push(new THREE.Vector3(-4.2, y, z))
     }
   }
 
@@ -470,48 +679,60 @@ function buildGunship(): Built {
   const p = new Parts()
   const thrusters: THREE.Vector3[] = []
 
-  // Squat, armoured, wide. One thick central mass with plating layered over it.
-  p.add('hull', slab(3.6, 1.15, 1.9, 0.12), (g) => g.translate(0, 0, 0))
-  p.add('accent', slab(2.6, 0.35, 2.0, 0.07), (g) => g.translate(-0.1, 0.5, 0))
-  p.add('trim', slab(3.0, 0.4, 1.5, 0.08), (g) => g.translate(-0.2, -0.6, 0))
+  // Broad and squat: a wide lofted body with a blunt, armoured bow.
+  p.add('hull', loftHull([
+    { x: 2.5, hw: 0.35, hh: 0.28, power: 3 },
+    { x: 1.9, hw: 0.85, hh: 0.5, power: 3.4 },
+    { x: 0.7, hw: 1.05, hh: 0.6, power: 4 },
+    { x: -0.6, hw: 1.0, hh: 0.6, power: 5 },
+    { x: -1.7, hw: 0.8, hh: 0.52, power: 6 },
+    { x: -2.1, hw: 0.7, hh: 0.46, power: 6 },
+  ], 28, 38))
 
-  // Prow armour, layered in overlapping plates.
-  p.add('hull', slab(1.2, 0.9, 1.5, 0.1), (g) => g.translate(2.0, -0.05, 0))
-  p.add('accent', slab(0.7, 0.6, 1.1, 0.07), (g) => g.translate(2.6, -0.05, 0))
-  p.add('trim', slab(0.25, 0.75, 1.3, 0.05), (g) => g.translate(2.35, -0.05, 0))
+  p.add('accent', slab(2.4, 0.3, 1.9, 0.07), (g) => g.translate(-0.1, 0.5, 0))
+  p.add('hull', slab(1.1, 0.75, 1.4, 0.12), (g) => g.translate(2.05, -0.02, 0))
+  p.add('trim', slab(0.24, 0.7, 1.2, 0.05), (g) => g.translate(2.45, -0.02, 0))
 
-  // Dorsal turret sunk into a ring in the deck.
-  p.add('trim', cyl(0.42, 0.42, 0.16, 18), (g) => {
+  p.add('trim', cyl(0.4, 0.4, 0.16, 20), (g) => {
     g.rotateZ(Math.PI / 2)
-    g.translate(0.2, 0.66, 0)
+    g.translate(0.2, 0.62, 0)
   })
-  p.add('hull', slab(0.7, 0.42, 0.7, 0.07), (g) => g.translate(0.2, 0.85, 0))
+  p.add('hull', slab(0.68, 0.4, 0.68, 0.08), (g) => g.translate(0.2, 0.8, 0))
   for (const z of [0.16, -0.16]) {
-    p.add('trim', cyl(0.06, 0.07, 1.0, 10), (g) => g.translate(0.85, 0.85, z))
+    p.add('trim', cyl(0.055, 0.065, 1.0, 12), (g) => g.translate(0.85, 0.8, z))
   }
 
   for (const s of [1, -1]) {
-    // Weapon sponson merged into the flank.
-    p.add('hull', slab(2.2, 0.6, 0.7, 0.09), (g) => g.translate(0.1, -0.3, s * 1.05))
-    p.add('trim', cyl(0.07, 0.08, 1.1, 10), (g) => g.translate(1.35, -0.3, s * 1.05))
-    p.add('accent', slab(0.5, 0.42, 0.5, 0.05), (g) => g.translate(-0.7, -0.3, s * 1.18))
+    p.add('hull', curvedWing(1.0, 1.3, 0.5, 0.16), (g) => {
+      g.rotateX(s * 0.1)
+      g.scale(1, 1, s)
+      g.translate(0.1, -0.24, s * 0.85)
+    })
+    p.add('trim', cyl(0.065, 0.075, 1.1, 12), (g) => g.translate(1.35, -0.3, s * 1.25))
 
-    // Engine housing embedded in the tail.
-    p.add('hull', slab(1.3, 0.8, 0.8, 0.1), (g) => g.translate(-1.9, 0.05, s * 0.6))
-    p.add('trim', cyl(0.32, 0.34, 0.22, 16), (g) => g.translate(-2.6, 0.05, s * 0.6))
-    thrusters.push(new THREE.Vector3(-2.75, 0.05, s * 0.6))
+    p.add('hull', loftHull([
+      { x: 0.3, hw: 0.02, hh: 0.02, power: 2 },
+      { x: 0.0, hw: 0.3, hh: 0.3, power: 2.2 },
+      { x: -0.9, hw: 0.32, hh: 0.32, power: 2.6 },
+      { x: -1.3, hw: 0.27, hh: 0.27, power: 2.4 },
+    ], 20, 26), (g) => g.translate(-1.4, 0.04, s * 0.62))
 
-    greebleRun(p, 8, -1.4, 1.4, 0.7, s * 0.5, 0.35)
+    p.add('trim', cyl(0.22, 0.25, 0.16, 18), (g) => g.translate(-2.78, 0.04, s * 0.62))
+    thrusters.push(new THREE.Vector3(-2.88, 0.04, s * 0.62))
+
+    greebleRun(p, 8, -1.4, 1.4, 0.66, s * 0.5, 0.35)
   }
 
-  const canopy = slab(0.9, 0.3, 0.9, 0.06)
-  canopy.translate(1.5, 0.42, 0)
+  const canopy = new THREE.SphereGeometry(0.3, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2)
+  canopy.scale(1.7, 0.6, 1.1)
+  canopy.translate(1.45, 0.34, 0)
   p.add('glass', canopy)
 
   return { group: assemble(p), thrusters }
 }
 
-/** Merge each bucket so a detailed ship is only a few draw calls. */
+
+/** Hand the collected buckets on for merging at materialize time. */
 function assemble(p: Parts): THREE.Group {
   const g = new THREE.Group()
   g.userData.buckets = p
@@ -540,7 +761,9 @@ function materializeShip(
     if (geos.length === 0) continue
     const merged = mergeGeometries(geos, false)
     if (merged) {
-      merged.computeVertexNormals()
+      // Deliberately not recomputing normals: every source geometry already
+      // carries its own, and recomputing here would flatten the lofted hulls'
+      // smoothing and undo their seam averaging.
       const mesh = new THREE.Mesh(merged, mat)
       mesh.castShadow = true
       mesh.receiveShadow = true
