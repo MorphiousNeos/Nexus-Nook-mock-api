@@ -575,7 +575,10 @@ function materializeShip(
     const merged = mergeGeometries(geos, false)
     if (merged) {
       merged.computeVertexNormals()
-      group.add(new THREE.Mesh(merged, mat))
+      const mesh = new THREE.Mesh(merged, mat)
+      mesh.castShadow = true
+      mesh.receiveShadow = true
+      group.add(mesh)
     }
     for (const geo of geos) geo.dispose()
   }
@@ -649,6 +652,8 @@ export default function ShipScene3D() {
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.95
     renderer.outputColorSpace = THREE.SRGBColorSpace
+    renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap
     renderer.domElement.style.width = '100%'
     renderer.domElement.style.height = '100%'
     host.appendChild(renderer.domElement)
@@ -664,6 +669,19 @@ export default function ShipScene3D() {
 
     const key = new THREE.DirectionalLight(0xffffff, 6.4)
     key.position.set(5, 7, 6)
+    // Parts casting shadows onto each other is most of what separates a model
+    // from a photograph. The frustum is sized to the whole traffic corridor —
+    // anything tighter clips shadows off mid-pass.
+    key.castShadow = true
+    key.shadow.mapSize.set(2048, 2048)
+    key.shadow.camera.left = -22
+    key.shadow.camera.right = 22
+    key.shadow.camera.top = 10
+    key.shadow.camera.bottom = -10
+    key.shadow.camera.near = 0.5
+    key.shadow.camera.far = 60
+    key.shadow.bias = -0.0012
+    key.shadow.normalBias = 0.02
     scene.add(key)
 
     const rim = new THREE.DirectionalLight(0x7dd3fc, 3.6)
@@ -687,19 +705,22 @@ export default function ShipScene3D() {
       roughnessMap: surface.rough,
       normalMap: surface.normal,
       normalScale: new THREE.Vector2(1.05, 1.05),
-      color: 0xdae1ea,
-      metalness: 0.78,
-      roughness: 0.27,
-      envMapIntensity: 2.9,
+      // Painted, not chromed. Uniform metal everywhere was the biggest "toy"
+      // tell — real craft are mostly painted panel, with bare metal reserved
+      // for engines and heat surfaces.
+      color: 0x8d99a8,
+      metalness: 0.22,
+      roughness: 0.52,
+      envMapIntensity: 1.5,
     })
     const trimMat = new THREE.MeshStandardMaterial({
       map: surface.map,
       normalMap: surface.normal,
       normalScale: new THREE.Vector2(1.1, 1.1),
-      color: 0x77828f,
-      metalness: 0.74,
-      roughness: 0.38,
-      envMapIntensity: 2.2,
+      color: 0x9fa9b6,
+      metalness: 0.94,
+      roughness: 0.31,
+      envMapIntensity: 2.8,
     })
     const glassMat = new THREE.MeshPhysicalMaterial({
       color: 0x0b1f2a,
