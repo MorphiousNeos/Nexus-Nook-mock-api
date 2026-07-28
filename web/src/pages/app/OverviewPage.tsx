@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useSession } from '../../SessionContext'
-import { Badge, Skeleton } from '../../components/ui'
+import { Badge, SectionLabel, Skeleton } from '../../components/ui'
 import DiscordButton from '../../components/DiscordButton'
 import { NAV_ITEMS } from '../../nav'
 import type { OpsActivity, ServerStatus, ServerStatusLevel } from '../../services/store'
@@ -109,35 +109,6 @@ function StatTile({
         </span>
       </div>
     </Link>
-  )
-}
-
-/**
- * Console section rule. Every band on the dashboard is introduced the same
- * way, so the page scans as one instrument panel rather than a stack of
- * unrelated cards.
- */
-function SectionLabel({ children, live }: { children: string; live?: boolean }) {
-  return (
-    <div className="mb-4 flex items-center gap-3">
-      <span
-        aria-hidden
-        className={`h-px w-8 bg-gradient-to-r to-transparent ${
-          live ? 'from-accent-400' : 'from-brand-500'
-        }`}
-      />
-      <h2 className="font-mono text-label uppercase text-hull-400">{children}</h2>
-      {live && (
-        <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-accent-300">
-          <span
-            aria-hidden
-            className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-400 motion-reduce:animate-none"
-          />
-          Live
-        </span>
-      )}
-      <span aria-hidden className="h-px flex-1 bg-line-subtle/70" />
-    </div>
   )
 }
 
