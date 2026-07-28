@@ -76,13 +76,13 @@ function Select({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+      <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
         {label}
       </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 transition focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+        className="w-full rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 transition focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
       >
         {children}
       </select>
@@ -96,7 +96,7 @@ function CatalogSkeleton() {
       {Array.from({ length: 6 }).map((_, i) => (
         <li
           key={i}
-          className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/50 p-3"
+          className="space-y-2 rounded-xl border border-hull-800 bg-hull-950/50 p-3"
         >
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="h-3 w-1/2" />
@@ -286,11 +286,11 @@ export default function ShipDatabaseCard() {
       icon="🛸"
       action={
         catalog ? (
-          <span className="text-xs text-slate-500">{catalog.length} entries</span>
+          <span className="text-xs text-hull-500">{catalog.length} entries</span>
         ) : undefined
       }
     >
-      <p className="mb-4 text-xs text-slate-400">
+      <p className="mb-4 text-xs text-hull-400">
         Every ship and vehicle in the community catalog. Search, filter, open one for full
         specs, and add it straight to your fleet.
       </p>
@@ -373,8 +373,8 @@ export default function ShipDatabaseCard() {
       {loading && <CatalogSkeleton />}
 
       {!loading && error && (
-        <div className="space-y-3 rounded-xl border border-amber-900/50 bg-amber-950/20 p-4">
-          <p className="text-sm text-amber-300">{error}</p>
+        <div className="space-y-3 rounded-xl border border-caution-900/50 bg-caution-950/20 p-4">
+          <p className="text-sm text-caution-300">{error}</p>
           <Button variant="ghost" onClick={() => setAttempt((a) => a + 1)}>
             Retry
           </Button>
@@ -389,7 +389,7 @@ export default function ShipDatabaseCard() {
               <button
                 type="button"
                 onClick={clearFilters}
-                className="font-medium text-purple-300 hover:text-purple-200"
+                className="font-medium text-brand-300 hover:text-brand-200"
               >
                 Clear filters
               </button>
@@ -403,7 +403,7 @@ export default function ShipDatabaseCard() {
       {!loading && !error && visible.length > 0 && (
         <>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-hull-500">
               Showing {visible.length} of {filtered.length}
               {catalog && filtered.length !== catalog.length
                 ? ` (filtered from ${catalog.length})`
@@ -440,24 +440,24 @@ export default function ShipDatabaseCard() {
                       aria-controls={domId}
                       onClick={toggle}
                       onKeyDown={onKey}
-                      className={`flex h-full cursor-pointer flex-col gap-2 rounded-xl border p-3 outline-none transition focus-visible:ring-2 focus-visible:ring-purple-500 ${
+                      className={`flex h-full cursor-pointer flex-col gap-2 rounded-xl border p-3 outline-none transition focus-visible:ring-2 focus-visible:ring-brand-500 ${
                         selected
-                          ? 'border-purple-700/70 bg-purple-950/25'
-                          : 'border-slate-800 bg-slate-950/50 hover:border-slate-700 hover:bg-slate-900/60'
+                          ? 'border-brand-700/70 bg-brand-950/25'
+                          : 'border-hull-800 bg-hull-950/50 hover:border-hull-700 hover:bg-hull-900/60'
                       }`}
                     >
                       <div className="flex items-start gap-2">
                         <span
                           aria-hidden
-                          className={`mt-0.5 text-xs text-slate-500 motion-safe:transition-transform ${
+                          className={`mt-0.5 text-xs text-hull-500 motion-safe:transition-transform ${
                             selected ? 'rotate-90' : ''
                           }`}
                         >
                           ▶
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium text-slate-100">{v.name}</p>
-                          <p className="truncate text-xs text-slate-400">
+                          <p className="truncate font-medium text-hull-100">{v.name}</p>
+                          <p className="truncate text-xs text-hull-400">
                             {v.manufacturer ?? 'Unknown manufacturer'}
                           </p>
                         </div>
@@ -490,14 +490,14 @@ export default function ShipDatabaseCard() {
                       id={domId}
                       className="min-w-0 sm:col-span-2 xl:col-span-3"
                     >
-                      <div className="rounded-xl border border-purple-900/50 bg-purple-950/10 p-3 sm:p-4">
+                      <div className="rounded-xl border border-brand-900/50 bg-brand-950/10 p-3 sm:p-4">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="text-xs uppercase tracking-wider text-purple-300">
+                            <p className="text-xs uppercase tracking-wider text-brand-300">
                               {v.name}
                             </p>
                             {describeVehicle(v) && (
-                              <p className="truncate text-[11px] text-slate-500">
+                              <p className="truncate text-[11px] text-hull-500">
                                 Catalog: {describeVehicle(v)}
                               </p>
                             )}
@@ -522,7 +522,7 @@ export default function ShipDatabaseCard() {
                         {addedKey === key && (
                           <p
                             role="status"
-                            className="mt-2 text-xs text-emerald-300"
+                            className="mt-2 text-xs text-positive-300"
                           >
                             ✓ Added to your fleet — find it on the Fleet page.
                           </p>
@@ -553,7 +553,7 @@ export default function ShipDatabaseCard() {
         </>
       )}
 
-      <p className="mt-5 border-t border-slate-800 pt-3 text-[11px] leading-relaxed text-slate-500">
+      <p className="mt-5 border-t border-hull-800 pt-3 text-[11px] leading-relaxed text-hull-500">
         Ship catalog from UEX Corp (uexcorp.space); detailed specs from Star Citizen Wiki
         (star-citizen.wiki), content licensed CC BY-SA 4.0. Both community-run — not
         affiliated with CIG.

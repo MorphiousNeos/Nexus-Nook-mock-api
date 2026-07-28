@@ -84,29 +84,29 @@ export default function ProfileCard() {
           <Button onClick={save} disabled={!dirty || busy}>
             {busy ? 'Saving…' : 'Save profile'}
           </Button>
-          {saved && <span className="text-sm text-emerald-400">Saved ✓</span>}
+          {saved && <span className="text-sm text-positive-400">Saved ✓</span>}
         </div>
-        <p className="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2 text-xs text-slate-400">
+        <p className="rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-2 text-xs text-hull-400">
           Your RSI handle is the public citizen name from your profile. Nexus Nook never
           asks for, stores, or transmits an RSI password and never logs into your account.
         </p>
 
-        <div className="mt-2 rounded-xl border border-red-900/50 bg-red-950/10 p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-red-400">
+        <div className="mt-2 rounded-xl border border-danger-900/50 bg-danger-950/10 p-4">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-danger-400">
             Danger zone
           </h3>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-hull-400">
             {isDemo
               ? 'Deleting removes all demo data stored in this browser.'
               : 'Deleting permanently removes your account and everything attached to it. See the '}
             {!isDemo && (
-              <a href="#/privacy" className="underline hover:text-slate-300">
+              <a href="#/privacy" className="underline hover:text-hull-300">
                 privacy policy
               </a>
             )}
             {!isDemo && ' for details.'}
           </p>
-          {deleteError && <p className="mt-2 text-xs text-amber-300">{deleteError}</p>}
+          {deleteError && <p className="mt-2 text-xs text-caution-300">{deleteError}</p>}
           <Button
             variant="danger"
             className="mt-3"

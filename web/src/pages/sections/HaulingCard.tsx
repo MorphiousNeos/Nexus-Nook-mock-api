@@ -67,20 +67,20 @@ function RouteBoard({
   if (groups.length === 0) return null
 
   return (
-    <div className="mb-5 rounded-xl border border-purple-900/50 bg-purple-950/15 p-4">
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-purple-300">
+    <div className="mb-5 rounded-xl border border-brand-900/50 bg-brand-950/15 p-4">
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-brand-300">
         Route board — all remaining stops by location
       </h3>
-      <p className="mt-1 text-[11px] text-slate-500">
+      <p className="mt-1 text-[11px] text-hull-500">
         Stack your missions: hit each location once. Check off stops as you go.
       </p>
       <div className="mt-3 space-y-3">
         {groups.map((g) => (
           <div
             key={g.location.toLowerCase()}
-            className="rounded-lg border border-slate-800 bg-slate-950/50 p-3"
+            className="rounded-lg border border-hull-800 bg-hull-950/50 p-3"
           >
-            <p className="font-medium text-slate-100">📍 {g.location}</p>
+            <p className="font-medium text-hull-100">📍 {g.location}</p>
             <ul className="mt-2 space-y-1.5">
               {g.stops.map(({ contract, stop }) => (
                 <li key={stop.id}>
@@ -89,20 +89,20 @@ function RouteBoard({
                       type="checkbox"
                       checked={stop.done}
                       onChange={() => onToggleStop(contract.id, stop.id)}
-                      className="h-4 w-4 rounded border-slate-600 bg-slate-900 accent-purple-500"
+                      className="h-4 w-4 rounded border-hull-600 bg-hull-900 accent-brand-500"
                     />
                     <span
                       className={
-                        stop.kind === 'pickup' ? 'text-sky-300' : 'text-emerald-300'
+                        stop.kind === 'pickup' ? 'text-sky-300' : 'text-positive-300'
                       }
                     >
                       {stop.kind === 'pickup' ? '⬆ Pick up' : '⬇ Drop off'}
                     </span>
-                    <span className="text-slate-200">
+                    <span className="text-hull-200">
                       {stop.scu > 0 ? `${stop.scu} SCU ` : ''}
                       {stop.commodity || 'cargo'}
                     </span>
-                    <span className="truncate text-xs text-slate-500">
+                    <span className="truncate text-xs text-hull-500">
                       · {contract.name}
                     </span>
                   </label>
@@ -225,7 +225,7 @@ export default function HaulingCard() {
         </Button>
       }
     >
-      <p className="mb-4 text-xs text-slate-400">
+      <p className="mb-4 text-xs text-hull-400">
         Log your cargo contracts, stack the stops into one route, and check them off as
         you fly.
       </p>
@@ -247,7 +247,7 @@ export default function HaulingCard() {
       {formOpen && (
         <form
           onSubmit={submit}
-          className="mb-5 space-y-3 rounded-xl border border-slate-800 bg-slate-950/50 p-4"
+          className="mb-5 space-y-3 rounded-xl border border-hull-800 bg-hull-950/50 p-4"
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <Field
@@ -268,14 +268,14 @@ export default function HaulingCard() {
           </div>
 
           <div>
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
               Stops
             </span>
             <div className="space-y-2">
               {stops.map((s) => (
                 <div
                   key={s.key}
-                  className="grid gap-2 rounded-lg border border-slate-800 bg-slate-950/40 p-2 sm:grid-cols-[auto_1fr_1fr_5rem_auto]"
+                  className="grid gap-2 rounded-lg border border-hull-800 bg-hull-950/40 p-2 sm:grid-cols-[auto_1fr_1fr_5rem_auto]"
                 >
                   <select
                     value={s.kind}
@@ -284,7 +284,7 @@ export default function HaulingCard() {
                         kind: e.target.value as 'pickup' | 'dropoff',
                       })
                     }
-                    className="rounded-lg border border-slate-700 bg-slate-950/60 px-2 py-2 text-sm text-slate-100 focus:border-purple-500 focus:outline-none"
+                    className="rounded-lg border border-hull-700 bg-hull-950/60 px-2 py-2 text-sm text-hull-100 focus:border-brand-500 focus:outline-none"
                   >
                     <option value="pickup">⬆ Pick up</option>
                     <option value="dropoff">⬇ Drop off</option>
@@ -293,13 +293,13 @@ export default function HaulingCard() {
                     placeholder="Location (e.g. Everus Harbor)"
                     value={s.location}
                     onChange={(e) => patchDraftStop(s.key, { location: e.target.value })}
-                    className="rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-purple-500 focus:outline-none"
+                    className="rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 placeholder-hull-500 focus:border-brand-500 focus:outline-none"
                   />
                   <input
                     placeholder="Commodity (e.g. Agricium)"
                     value={s.commodity}
                     onChange={(e) => patchDraftStop(s.key, { commodity: e.target.value })}
-                    className="rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-purple-500 focus:outline-none"
+                    className="rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 placeholder-hull-500 focus:border-brand-500 focus:outline-none"
                   />
                   <input
                     type="number"
@@ -307,7 +307,7 @@ export default function HaulingCard() {
                     placeholder="SCU"
                     value={s.scu}
                     onChange={(e) => patchDraftStop(s.key, { scu: e.target.value })}
-                    className="rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-purple-500 focus:outline-none"
+                    className="rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 placeholder-hull-500 focus:border-brand-500 focus:outline-none"
                   />
                   <Button
                     type="button"
@@ -349,7 +349,7 @@ export default function HaulingCard() {
             onChange={(e) => setNotes(e.target.value)}
           />
 
-          {formError && <p className="text-sm text-amber-300">{formError}</p>}
+          {formError && <p className="text-sm text-caution-300">{formError}</p>}
           <Button type="submit" disabled={busy}>
             {busy ? 'Saving…' : 'Add contract'}
           </Button>
@@ -372,16 +372,16 @@ export default function HaulingCard() {
             return (
               <li
                 key={c.id}
-                className="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-3"
+                className="rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-medium text-slate-100">{c.name}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">
+                    <p className="font-medium text-hull-100">{c.name}</p>
+                    <p className="mt-0.5 text-xs text-hull-500">
                       {doneCount}/{c.stops.length} stops
                       {c.reward ? ` · ${formatAuec(c.reward)}` : ''}
                     </p>
-                    {c.notes && <p className="mt-1 text-xs text-slate-500">{c.notes}</p>}
+                    {c.notes && <p className="mt-1 text-xs text-hull-500">{c.notes}</p>}
                   </div>
                   <Button
                     variant="danger"
@@ -391,9 +391,9 @@ export default function HaulingCard() {
                     Remove
                   </Button>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-hull-800">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-sky-500 to-purple-500 transition-all"
+                    className="h-full rounded-full bg-gradient-to-r from-sky-500 to-brand-500 transition-all"
                     style={{
                       width: `${c.stops.length ? (doneCount / c.stops.length) * 100 : 0}%`,
                     }}
@@ -410,7 +410,7 @@ export default function HaulingCard() {
           <button
             type="button"
             onClick={() => setShowDelivered((v) => !v)}
-            className="text-xs font-semibold uppercase tracking-widest text-slate-500 hover:text-slate-300"
+            className="text-xs font-semibold uppercase tracking-widest text-hull-500 hover:text-hull-300"
           >
             Delivered ({delivered.length}) {showDelivered ? '▾' : '▸'}
           </button>
@@ -419,14 +419,14 @@ export default function HaulingCard() {
               {delivered.map((c) => (
                 <li
                   key={c.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-emerald-900/40 bg-emerald-950/10 px-3 py-2"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-positive-900/40 bg-positive-950/10 px-3 py-2"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-300">
+                    <p className="truncate text-sm font-medium text-hull-300">
                       ✅ {c.name}
                     </p>
                     {c.reward ? (
-                      <p className="text-xs text-emerald-400">{formatAuec(c.reward)}</p>
+                      <p className="text-xs text-positive-400">{formatAuec(c.reward)}</p>
                     ) : null}
                   </div>
                   <div className="flex shrink-0 gap-2">

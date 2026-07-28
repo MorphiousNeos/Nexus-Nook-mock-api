@@ -196,15 +196,15 @@ export default function InventoryCard() {
         </Button>
       }
     >
-      <p className="mb-4 text-xs text-slate-400">
+      <p className="mb-4 text-xs text-hull-400">
         A personal manifest of components, cargo, and gear you want to keep track of.
       </p>
 
       {pickerOpen && (
-        <div className="mb-5 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+        <div className="mb-5 rounded-xl border border-hull-800 bg-hull-950/50 p-4">
           {/* Category picker — UEX lists items per category. */}
           <label className="block">
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
               Category
             </span>
             <select
@@ -215,7 +215,7 @@ export default function InventoryCard() {
                 setSearch('')
               }}
               disabled={catLoading || !!catError || !categories}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 disabled:opacity-60"
+              className="w-full rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:opacity-60"
             >
               <option value="">
                 {catLoading
@@ -232,7 +232,7 @@ export default function InventoryCard() {
             </select>
           </label>
 
-          {catError && <p className="mt-2 text-sm text-amber-300">{catError}</p>}
+          {catError && <p className="mt-2 text-sm text-caution-300">{catError}</p>}
 
           {selectedCat && (
             <div className="mt-3">
@@ -247,25 +247,25 @@ export default function InventoryCard() {
           )}
 
           {selectedCat && (
-            <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40">
+            <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border border-hull-800 bg-hull-950/40">
               {loading && (
-                <p className="px-3 py-6 text-center text-sm text-slate-500">
+                <p className="px-3 py-6 text-center text-sm text-hull-500">
                   Loading items…
                 </p>
               )}
 
               {!loading && loadError && (
-                <p className="px-3 py-4 text-sm text-amber-300">{loadError}</p>
+                <p className="px-3 py-4 text-sm text-caution-300">{loadError}</p>
               )}
 
               {!loading && !loadError && catalog && filtered.length === 0 && (
-                <p className="px-3 py-6 text-center text-sm text-slate-500">
+                <p className="px-3 py-6 text-center text-sm text-hull-500">
                   {query ? `No items match “${query}”.` : 'No items in this category.'}
                 </p>
               )}
 
               {!loading && !loadError && visible.length > 0 && (
-                <ul className="divide-y divide-slate-800/70">
+                <ul className="divide-y divide-hull-800/70">
                   {visible.map((item) => {
                     const key = String(item.id ?? item.name)
                     const meta = describeItem(item)
@@ -277,8 +277,8 @@ export default function InventoryCard() {
                         className="flex items-center justify-between gap-3 px-3 py-2"
                       >
                         <div className="min-w-0">
-                          <p className="truncate font-medium text-slate-100">{item.name}</p>
-                          <p className="truncate text-xs text-slate-400">
+                          <p className="truncate font-medium text-hull-100">{item.name}</p>
+                          <p className="truncate text-xs text-hull-400">
                             {[item.manufacturer, meta].filter(Boolean).join(' · ') ||
                               'Unspecified'}
                           </p>
@@ -300,7 +300,7 @@ export default function InventoryCard() {
           )}
 
           {selectedCat && !loading && !loadError && catalog && filtered.length > 0 && (
-            <p className="mt-2 text-[11px] text-slate-500">
+            <p className="mt-2 text-[11px] text-hull-500">
               Showing {visible.length} of {filtered.length}
               {filtered.length !== catalog.length ? ` (filtered from ${catalog.length})` : ''}
               .
@@ -310,14 +310,14 @@ export default function InventoryCard() {
           {selected && (
             <form
               onSubmit={confirmSelection}
-              className="mt-3 grid gap-3 rounded-lg border border-purple-900/50 bg-purple-950/20 p-3 sm:grid-cols-[1fr_auto_auto]"
+              className="mt-3 grid gap-3 rounded-lg border border-brand-900/50 bg-brand-950/20 p-3 sm:grid-cols-[1fr_auto_auto]"
             >
               <div className="min-w-0 sm:col-span-3">
-                <p className="text-xs uppercase tracking-wider text-purple-300">
+                <p className="text-xs uppercase tracking-wider text-brand-300">
                   Adding
                 </p>
-                <p className="truncate font-medium text-slate-100">{selected.name}</p>
-                <p className="truncate text-xs text-slate-400">
+                <p className="truncate font-medium text-hull-100">{selected.name}</p>
+                <p className="truncate text-xs text-hull-400">
                   {[selected.manufacturer, describeItem(selected)]
                     .filter(Boolean)
                     .join(' · ') || 'Unspecified'}
@@ -353,7 +353,7 @@ export default function InventoryCard() {
           )}
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-hull-500">
               Item data from UEX Corp (uexcorp.space) — community-run, not affiliated with
               CIG.
             </p>
@@ -365,7 +365,7 @@ export default function InventoryCard() {
           {customOpen && (
             <form
               onSubmit={submitCustom}
-              className="mt-3 grid gap-3 border-t border-slate-800 pt-3 sm:grid-cols-2"
+              className="mt-3 grid gap-3 border-t border-hull-800 pt-3 sm:grid-cols-2"
             >
               <Field
                 label="Item name"
@@ -413,14 +413,14 @@ export default function InventoryCard() {
         {inventory.map((item) => (
           <li
             key={item.id}
-            className="flex items-start justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2"
+            className="flex items-start justify-between gap-3 rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-2"
           >
             <div>
-              <p className="font-medium text-slate-100">
+              <p className="font-medium text-hull-100">
                 {item.name}{' '}
-                <span className="text-xs font-normal text-purple-300">×{item.qty}</span>
+                <span className="text-xs font-normal text-brand-300">×{item.qty}</span>
               </p>
-              {item.notes && <p className="mt-1 text-xs text-slate-500">{item.notes}</p>}
+              {item.notes && <p className="mt-1 text-xs text-hull-500">{item.notes}</p>}
             </div>
             <Button variant="danger" onClick={() => removeItem(item.id)} className="shrink-0">
               Remove

@@ -114,16 +114,16 @@ function locationLine(terminal: string, system?: string): string {
 
 function RouteRow({ route, rank }: { route: RouteResult; rank: number }) {
   return (
-    <li className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+    <li className="rounded-lg border border-hull-800 bg-hull-950/50 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-slate-700/70 bg-slate-800/60 text-xs tabular-nums text-slate-300">
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-hull-700/70 bg-hull-800/60 text-xs tabular-nums text-hull-300">
             {rank}
           </span>
-          <p className="truncate font-medium text-slate-100">
+          <p className="truncate font-medium text-hull-100">
             {route.name}
             {route.code && (
-              <span className="ml-1.5 text-xs text-slate-500">{route.code}</span>
+              <span className="ml-1.5 text-xs text-hull-500">{route.code}</span>
             )}
           </p>
         </div>
@@ -131,49 +131,49 @@ function RouteRow({ route, rank }: { route: RouteResult; rank: number }) {
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <div className="rounded-md border border-slate-800/70 bg-slate-900/40 px-2.5 py-1.5">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+        <div className="rounded-md border border-hull-800/70 bg-hull-900/40 px-2.5 py-1.5">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-hull-500">
             Buy
           </p>
-          <p className="truncate text-sm text-slate-200">
+          <p className="truncate text-sm text-hull-200">
             {locationLine(route.buyTerminal, route.buySystem)}
           </p>
           <p className="text-sm tabular-nums text-sky-300">
             {fmtAuec(route.buyPrice)} aUEC/SCU
           </p>
         </div>
-        <div className="rounded-md border border-slate-800/70 bg-slate-900/40 px-2.5 py-1.5">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+        <div className="rounded-md border border-hull-800/70 bg-hull-900/40 px-2.5 py-1.5">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-hull-500">
             Sell
           </p>
-          <p className="truncate text-sm text-slate-200">
+          <p className="truncate text-sm text-hull-200">
             {locationLine(route.sellTerminal, route.sellSystem)}
           </p>
-          <p className="text-sm tabular-nums text-purple-300">
+          <p className="text-sm tabular-nums text-brand-300">
             {fmtAuec(route.sellPrice)} aUEC/SCU
           </p>
         </div>
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-hull-400">
         <span>
-          Haul <span className="tabular-nums text-slate-200">{route.units} SCU</span>
+          Haul <span className="tabular-nums text-hull-200">{route.units} SCU</span>
         </span>
         <span>
           Invest{' '}
-          <span className="tabular-nums text-slate-200">
+          <span className="tabular-nums text-hull-200">
             {fmtAuec(route.investment)} aUEC
           </span>
         </span>
         <span>
           Profit{' '}
-          <span className="tabular-nums text-emerald-300">
+          <span className="tabular-nums text-positive-300">
             {fmtAuec(route.grossProfit)} aUEC
           </span>
         </span>
         <span>
           ROI{' '}
-          <span className="tabular-nums text-slate-200">{route.roi.toFixed(1)}%</span>
+          <span className="tabular-nums text-hull-200">{route.roi.toFixed(1)}%</span>
         </span>
       </div>
     </li>
@@ -291,7 +291,7 @@ export default function RouteFinderCard() {
 
   return (
     <Card title="Route Finder" icon="🧭">
-      <p className="mb-4 text-xs text-slate-400">
+      <p className="mb-4 text-xs text-hull-400">
         Tell us your hold size and wallet — we scan the top-spread commodities for the
         best buy-low / sell-high runs.
       </p>
@@ -318,11 +318,11 @@ export default function RouteFinderCard() {
         </Button>
       </form>
 
-      {validation && <p className="mb-3 text-xs text-red-300">{validation}</p>}
+      {validation && <p className="mb-3 text-xs text-danger-300">{validation}</p>}
 
       {loading && (
-        <div className="mb-3 flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2.5 text-xs text-slate-400">
-          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-600 border-t-purple-400" />
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-2.5 text-xs text-hull-400">
+          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-hull-600 border-t-purple-400" />
           {progress
             ? `Scanning ${progress.scanning}… ${progress.done}/${progress.total}`
             : 'Loading commodity list…'}
@@ -352,7 +352,7 @@ export default function RouteFinderCard() {
         </ol>
       )}
 
-      <p className="mt-4 text-[11px] leading-snug text-slate-600">
+      <p className="mt-4 text-[11px] leading-snug text-hull-600">
         {ATTRIBUTION} Prices are player-reported and can lag the live game — verify in
         the 'verse before committing your aUEC.
       </p>

@@ -24,7 +24,7 @@ function Layout() {
   if (!ready) {
     return (
       <div className="starfield flex min-h-screen flex-col">
-        <div className="flex flex-1 items-center justify-center text-slate-400">
+        <div className="flex flex-1 items-center justify-center text-hull-400">
           <span className="animate-pulse font-display tracking-widest">
             INITIALIZING NEXUS LINK…
           </span>

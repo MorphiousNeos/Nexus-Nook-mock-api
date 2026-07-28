@@ -101,37 +101,37 @@ export default function OrgHub() {
             onChange={(e) => setTag(e.target.value)}
           />
           <label className="block sm:col-span-2">
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
               Description
             </span>
             <textarea
-              className="min-h-[72px] w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 transition focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="min-h-[72px] w-full rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 placeholder-hull-500 transition focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               placeholder="A crew built around bunkers, hauling, and good company."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
           </label>
           <label className="block sm:col-span-2">
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
               Link to RSI org (optional)
             </span>
             <input
               type="text"
-              className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 transition focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="w-full rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 placeholder-hull-500 transition focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               placeholder="SID (e.g. CRMSN) or the org URL from robertsspaceindustries.com"
               value={rsiSid}
               onChange={(e) => setRsiSid(e.target.value)}
             />
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-[11px] text-hull-500">
               Public SID only — we link out to the org's page on RSI. No login, no
               scraping, no member rosters pulled from RSI.
               {rsiSid && !sidPreview && (
-                <span className="ml-1 text-amber-300">
+                <span className="ml-1 text-caution-300">
                   Doesn't look like a valid SID.
                 </span>
               )}
               {sidPreview && (
-                <span className="ml-1 text-purple-300">
+                <span className="ml-1 text-brand-300">
                   Will link to{' '}
                   <a
                     className="underline"
@@ -147,7 +147,7 @@ export default function OrgHub() {
             </p>
           </label>
           {formError && (
-            <p className="text-sm text-amber-300 sm:col-span-2">{formError}</p>
+            <p className="text-sm text-caution-300 sm:col-span-2">{formError}</p>
           )}
           <div className="sm:col-span-2">
             <Button type="submit" disabled={busy || !name.trim()}>
@@ -187,12 +187,12 @@ export default function OrgHub() {
                 <button
                   type="button"
                   onClick={() => setSelectedId(o.id)}
-                  className="w-full rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-3 text-left transition hover:border-purple-700/60 hover:bg-slate-900/60 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="w-full rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-3 text-left transition hover:border-brand-700/60 hover:bg-hull-900/60 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium text-slate-100">
+                        <span className="font-medium text-hull-100">
                           {o.name || 'Untitled org'}
                         </span>
                         {o.tag && <Badge tone="purple">[{o.tag}]</Badge>}
@@ -205,7 +205,7 @@ export default function OrgHub() {
                           </span>
                         )}
                       </div>
-                      <p className="mt-0.5 text-xs text-slate-500">
+                      <p className="mt-0.5 text-xs text-hull-500">
                         {o.owner || 'Unknown'} ·{' '}
                         {o.memberCount !== undefined
                           ? `${o.memberCount} ${o.memberCount === 1 ? 'member' : 'members'} · `
@@ -215,7 +215,7 @@ export default function OrgHub() {
                     </div>
                   </div>
                   {o.description && (
-                    <p className="mt-2 line-clamp-2 text-sm text-slate-300">
+                    <p className="mt-2 line-clamp-2 text-sm text-hull-300">
                       {o.description}
                     </p>
                   )}

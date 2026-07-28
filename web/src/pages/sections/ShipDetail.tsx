@@ -73,12 +73,12 @@ export default function ShipDetail({ ship, cached, onResolved }: Props) {
   }, [ship.name, ship.manufacturer, attempt])
 
   return (
-    <div className="mt-2 rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+    <div className="mt-2 rounded-xl border border-hull-800 bg-hull-950/60 p-4">
       {loading && <DetailSkeleton />}
 
       {!loading && error && (
         <div className="space-y-3">
-          <p className="text-sm text-amber-300">{error}</p>
+          <p className="text-sm text-caution-300">{error}</p>
           <Button variant="ghost" onClick={() => setAttempt((a) => a + 1)}>
             Retry
           </Button>
@@ -88,7 +88,7 @@ export default function ShipDetail({ ship, cached, onResolved }: Props) {
 
       {!loading && !error && detail === null && (
         <div className="space-y-3">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-hull-400">
             No details available from the wiki yet for this ship.
           </p>
           <Attribution />
@@ -120,11 +120,11 @@ function DetailBody({
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="font-display text-lg font-semibold text-slate-100">
+          <h3 className="font-display text-lg font-semibold text-hull-100">
             {detail.name}
           </h3>
           {detail.manufacturer && (
-            <p className="mt-0.5 text-xs uppercase tracking-wider text-slate-400">
+            <p className="mt-0.5 text-xs uppercase tracking-wider text-hull-400">
               {detail.manufacturer}
             </p>
           )}
@@ -141,7 +141,7 @@ function DetailBody({
           src={detail.imageUrl}
           alt={`${detail.name} from the Star Citizen Wiki`}
           loading="lazy"
-          className="max-h-56 w-full rounded-lg border border-slate-800 object-cover"
+          className="max-h-56 w-full rounded-lg border border-hull-800 object-cover"
           // If the image 404s or is hot-link blocked, hide it gracefully.
           onError={(e) => {
             ;(e.currentTarget as HTMLImageElement).style.display = 'none'
@@ -150,13 +150,13 @@ function DetailBody({
       )}
 
       {description && (
-        <div className="text-sm leading-relaxed text-slate-300">
+        <div className="text-sm leading-relaxed text-hull-300">
           <p className={expanded || !isLong ? '' : 'line-clamp-3'}>{description}</p>
           {isLong && (
             <button
               type="button"
               onClick={() => setExpanded(!expanded)}
-              className="mt-1 text-xs font-medium text-purple-300 hover:text-purple-200"
+              className="mt-1 text-xs font-medium text-brand-300 hover:text-brand-200"
             >
               {expanded ? 'Show less' : 'Show more'}
             </button>
@@ -178,10 +178,10 @@ function DetailBody({
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
           {rows.map((row) => (
             <div key={row.label} className="min-w-0">
-              <dt className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+              <dt className="text-[10px] font-medium uppercase tracking-wider text-hull-500">
                 {row.label}
               </dt>
-              <dd className="truncate text-sm text-slate-200">{row.value}</dd>
+              <dd className="truncate text-sm text-hull-200">{row.value}</dd>
             </div>
           ))}
         </dl>
@@ -204,14 +204,14 @@ function DetailSkeleton() {
         <Skeleton className="h-8" />
         <Skeleton className="h-8" />
       </div>
-      <p className="pt-1 text-xs text-slate-500">Loading details…</p>
+      <p className="pt-1 text-xs text-hull-500">Loading details…</p>
     </div>
   )
 }
 
 function Attribution() {
   return (
-    <p className="border-t border-slate-800 pt-3 text-[11px] leading-relaxed text-slate-500">
+    <p className="border-t border-hull-800 pt-3 text-[11px] leading-relaxed text-hull-500">
       Ship details from Star Citizen Wiki (star-citizen.wiki) — content licensed
       CC BY-SA 4.0. Unofficial; not affiliated with CIG.
     </p>

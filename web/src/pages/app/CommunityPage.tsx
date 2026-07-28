@@ -36,8 +36,8 @@ export default function CommunityPage() {
               onClick={() => setTab(t.id)}
               className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition ${
                 active
-                  ? 'border-purple-700/60 bg-purple-950/40 text-purple-100 shadow-inner shadow-purple-950/40'
-                  : 'border-slate-700/70 bg-slate-800/40 text-slate-300 hover:border-slate-600 hover:bg-slate-700/50 hover:text-slate-100'
+                  ? 'border-brand-700/60 bg-brand-950/40 text-brand-100 shadow-inner shadow-brand-950/40'
+                  : 'border-hull-700/70 bg-hull-800/40 text-hull-300 hover:border-hull-600 hover:bg-hull-700/50 hover:text-hull-100'
               }`}
             >
               <span aria-hidden>{t.icon}</span>

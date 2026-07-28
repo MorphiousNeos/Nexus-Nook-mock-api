@@ -17,7 +17,7 @@ html {
 }
 
 body {
-  @apply bg-slate-950 text-slate-100 antialiased;
+  @apply bg-hull-950 text-hull-100 antialiased;
 }
 
 /* Subtle starfield backdrop for the "nook in the Nexus" theme. */

@@ -25,9 +25,9 @@ const STATUS_LABELS: Record<BlueprintStatus, string> = {
 }
 
 const STATUS_COLORS: Record<BlueprintStatus, string> = {
-  wanted: 'text-amber-400 border-amber-700 bg-amber-950/40',
+  wanted: 'text-caution-400 border-caution-700 bg-caution-950/40',
   found: 'text-blue-300 border-blue-700 bg-blue-950/40',
-  crafted: 'text-emerald-400 border-emerald-700 bg-emerald-950/40',
+  crafted: 'text-positive-400 border-positive-700 bg-positive-950/40',
 }
 
 const STATUS_ORDER: BlueprintStatus[] = ['wanted', 'found', 'crafted']
@@ -57,17 +57,17 @@ function ShoppingList({ blueprints }: { blueprints: BlueprintEntry[] }) {
   if (rows.length === 0) return null
 
   return (
-    <div className="mb-5 rounded-xl border border-purple-900/50 bg-purple-950/15 p-4">
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-purple-300">
+    <div className="mb-5 rounded-xl border border-brand-900/50 bg-brand-950/15 p-4">
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-brand-300">
         Shopping list — materials still needed
       </h3>
       <ul className="mt-2 space-y-1.5">
         {rows.map((r) => (
           <li key={r.name.toLowerCase()} className="flex items-baseline justify-between gap-3 text-sm">
-            <span className="text-slate-100">{r.name}</span>
+            <span className="text-hull-100">{r.name}</span>
             <span className="shrink-0 text-right">
-              <span className="font-semibold text-amber-300">×{r.missing}</span>
-              <span className="ml-2 hidden text-[11px] text-slate-500 sm:inline">
+              <span className="font-semibold text-caution-300">×{r.missing}</span>
+              <span className="ml-2 hidden text-[11px] text-hull-500 sm:inline">
                 for {r.blueprints.join(', ')}
               </span>
             </span>
@@ -117,7 +117,7 @@ function MaterialsEditor({
   }
 
   return (
-    <div className="mt-2 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+    <div className="mt-2 rounded-lg border border-hull-800 bg-hull-950/40 p-3">
       {materials.length > 0 && (
         <ul className="space-y-2">
           {materials.map((m) => {
@@ -125,7 +125,7 @@ function MaterialsEditor({
             return (
               <li key={m.id} className="text-sm">
                 <div className="flex items-center justify-between gap-2">
-                  <span className={done ? 'text-emerald-400' : 'text-slate-200'}>
+                  <span className={done ? 'text-positive-400' : 'text-hull-200'}>
                     {done ? '✓ ' : ''}
                     {m.name}
                   </span>
@@ -133,18 +133,18 @@ function MaterialsEditor({
                     <button
                       type="button"
                       onClick={() => patch(m.id, { have: m.have - 1 })}
-                      className="grid h-6 w-6 place-items-center rounded border border-slate-700 text-slate-300 hover:bg-slate-800"
+                      className="grid h-6 w-6 place-items-center rounded border border-hull-700 text-hull-300 hover:bg-hull-800"
                       aria-label={`One less ${m.name}`}
                     >
                       −
                     </button>
-                    <span className="min-w-[3.5rem] text-center tabular-nums text-slate-300">
+                    <span className="min-w-[3.5rem] text-center tabular-nums text-hull-300">
                       {m.have}/{m.need}
                     </span>
                     <button
                       type="button"
                       onClick={() => patch(m.id, { have: m.have + 1 })}
-                      className="grid h-6 w-6 place-items-center rounded border border-slate-700 text-slate-300 hover:bg-slate-800"
+                      className="grid h-6 w-6 place-items-center rounded border border-hull-700 text-hull-300 hover:bg-hull-800"
                       aria-label={`One more ${m.name}`}
                     >
                       +
@@ -152,16 +152,16 @@ function MaterialsEditor({
                     <button
                       type="button"
                       onClick={() => onChange(materials.filter((x) => x.id !== m.id))}
-                      className="ml-1 text-xs text-slate-600 hover:text-red-400"
+                      className="ml-1 text-xs text-hull-600 hover:text-danger-400"
                       aria-label={`Remove ${m.name}`}
                     >
                       ✕
                     </button>
                   </span>
                 </div>
-                <div className="mt-1 h-1 overflow-hidden rounded-full bg-slate-800">
+                <div className="mt-1 h-1 overflow-hidden rounded-full bg-hull-800">
                   <div
-                    className={`h-full rounded-full transition-all ${done ? 'bg-emerald-500' : 'bg-purple-500'}`}
+                    className={`h-full rounded-full transition-all ${done ? 'bg-positive-500' : 'bg-brand-500'}`}
                     style={{ width: `${Math.min(100, (m.have / m.need) * 100)}%` }}
                   />
                 </div>
@@ -176,14 +176,14 @@ function MaterialsEditor({
           placeholder="Material (e.g. Quantanium)"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:border-purple-500 focus:outline-none"
+          className="min-w-0 flex-1 rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-1.5 text-sm text-hull-100 placeholder-hull-500 focus:border-brand-500 focus:outline-none"
         />
         <input
           type="number"
           min={1}
           value={need}
           onChange={(e) => setNeed(e.target.value)}
-          className="w-20 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-1.5 text-sm text-slate-100 focus:border-purple-500 focus:outline-none"
+          className="w-20 rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-1.5 text-sm text-hull-100 focus:border-brand-500 focus:outline-none"
           aria-label="Quantity needed"
         />
         <Button type="submit" variant="ghost" disabled={!name.trim()}>
@@ -367,14 +367,14 @@ export default function BlueprintCard() {
         </Button>
       }
     >
-      <p className="mb-4 text-xs text-slate-400">
+      <p className="mb-4 text-xs text-hull-400">
         Track crafting blueprints you want, have found, or have already used to craft gear.
       </p>
 
       {pickerOpen && (
-        <div className="mb-5 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+        <div className="mb-5 rounded-xl border border-hull-800 bg-hull-950/50 p-4">
           <label className="block">
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
               Category
             </span>
             <select
@@ -385,7 +385,7 @@ export default function BlueprintCard() {
                 setSearch('')
               }}
               disabled={catLoading || !!catError || !categories}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 disabled:opacity-60"
+              className="w-full rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:opacity-60"
             >
               <option value="">
                 {catLoading
@@ -402,7 +402,7 @@ export default function BlueprintCard() {
             </select>
           </label>
 
-          {catError && <p className="mt-2 text-sm text-amber-300">{catError}</p>}
+          {catError && <p className="mt-2 text-sm text-caution-300">{catError}</p>}
 
           {selectedCat && (
             <div className="mt-3">
@@ -417,20 +417,20 @@ export default function BlueprintCard() {
           )}
 
           {selectedCat && (
-            <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40">
+            <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-hull-800 bg-hull-950/40">
               {loading && (
-                <p className="px-3 py-6 text-center text-sm text-slate-500">Loading items…</p>
+                <p className="px-3 py-6 text-center text-sm text-hull-500">Loading items…</p>
               )}
               {!loading && loadError && (
-                <p className="px-3 py-4 text-sm text-amber-300">{loadError}</p>
+                <p className="px-3 py-4 text-sm text-caution-300">{loadError}</p>
               )}
               {!loading && !loadError && catalog && filtered.length === 0 && (
-                <p className="px-3 py-6 text-center text-sm text-slate-500">
+                <p className="px-3 py-6 text-center text-sm text-hull-500">
                   {query ? `No items match "${query}".` : 'No items in this category.'}
                 </p>
               )}
               {!loading && !loadError && visible.length > 0 && (
-                <ul className="divide-y divide-slate-800/70">
+                <ul className="divide-y divide-hull-800/70">
                   {visible.map((item) => {
                     const key = String(item.id ?? item.name)
                     const isSelected =
@@ -441,9 +441,9 @@ export default function BlueprintCard() {
                         className="flex items-center justify-between gap-3 px-3 py-2"
                       >
                         <div className="min-w-0">
-                          <p className="truncate font-medium text-slate-100">{item.name}</p>
+                          <p className="truncate font-medium text-hull-100">{item.name}</p>
                           {item.manufacturer && (
-                            <p className="truncate text-xs text-slate-400">{item.manufacturer}</p>
+                            <p className="truncate text-xs text-hull-400">{item.manufacturer}</p>
                           )}
                         </div>
                         <Button
@@ -465,14 +465,14 @@ export default function BlueprintCard() {
           {selected && (
             <form
               onSubmit={confirmSelection}
-              className="mt-3 rounded-lg border border-purple-900/50 bg-purple-950/20 p-3 space-y-3"
+              className="mt-3 rounded-lg border border-brand-900/50 bg-brand-950/20 p-3 space-y-3"
             >
               <div>
-                <p className="text-xs uppercase tracking-wider text-purple-300">Tracking</p>
-                <p className="truncate font-medium text-slate-100">{selected.name}</p>
+                <p className="text-xs uppercase tracking-wider text-brand-300">Tracking</p>
+                <p className="truncate font-medium text-hull-100">{selected.name}</p>
               </div>
               <div>
-                <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
                   Status
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -481,7 +481,7 @@ export default function BlueprintCard() {
                       key={s}
                       type="button"
                       onClick={() => setPickStatus(s)}
-                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-opacity ${STATUS_COLORS[s]} ${pickStatus === s ? 'opacity-100 ring-1 ring-purple-400' : 'opacity-50'}`}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-opacity ${STATUS_COLORS[s]} ${pickStatus === s ? 'opacity-100 ring-1 ring-brand-400' : 'opacity-50'}`}
                     >
                       {STATUS_LABELS[s]}
                     </button>
@@ -512,7 +512,7 @@ export default function BlueprintCard() {
           )}
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-hull-500">
               Item data from UEX Corp (uexcorp.space) — community-run, not affiliated with CIG.
             </p>
             <Button variant="ghost" onClick={() => setCustomOpen((o) => !o)}>
@@ -523,7 +523,7 @@ export default function BlueprintCard() {
           {customOpen && (
             <form
               onSubmit={submitCustom}
-              className="mt-3 grid gap-3 border-t border-slate-800 pt-3 sm:grid-cols-2"
+              className="mt-3 grid gap-3 border-t border-hull-800 pt-3 sm:grid-cols-2"
             >
               <Field
                 label="Blueprint name"
@@ -532,7 +532,7 @@ export default function BlueprintCard() {
                 onChange={(e) => setCustomName(e.target.value)}
               />
               <div>
-                <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
                   Status
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -541,7 +541,7 @@ export default function BlueprintCard() {
                       key={s}
                       type="button"
                       onClick={() => setCustomStatus(s)}
-                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-opacity ${STATUS_COLORS[s]} ${customStatus === s ? 'opacity-100 ring-1 ring-purple-400' : 'opacity-50'}`}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-opacity ${STATUS_COLORS[s]} ${customStatus === s ? 'opacity-100 ring-1 ring-brand-400' : 'opacity-50'}`}
                     >
                       {STATUS_LABELS[s]}
                     </button>
@@ -584,9 +584,9 @@ export default function BlueprintCard() {
 
       {STATUS_ORDER.filter((s) => grouped[s].length > 0).map((status) => (
         <div key={status} className="mb-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-hull-500">
             {STATUS_LABELS[status]}
-            <span className="ml-2 rounded-full bg-slate-800 px-2 py-0.5 text-slate-400">
+            <span className="ml-2 rounded-full bg-hull-800 px-2 py-0.5 text-hull-400">
               {grouped[status].length}
             </span>
           </h3>
@@ -598,14 +598,14 @@ export default function BlueprintCard() {
               return (
                 <li
                   key={bp.id}
-                  className="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2"
+                  className="rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-2"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium text-slate-100">{bp.name}</p>
+                        <p className="font-medium text-hull-100">{bp.name}</p>
                         {bp.category && (
-                          <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">
+                          <span className="rounded bg-hull-800 px-1.5 py-0.5 text-[10px] text-hull-400">
                             {bp.category}
                           </span>
                         )}
@@ -616,11 +616,11 @@ export default function BlueprintCard() {
                       {bp.source && (
                         <p className="mt-0.5 text-xs text-sky-300/80">📍 {bp.source}</p>
                       )}
-                      {bp.notes && <p className="mt-0.5 text-xs text-slate-500">{bp.notes}</p>}
+                      {bp.notes && <p className="mt-0.5 text-xs text-hull-500">{bp.notes}</p>}
                       <button
                         type="button"
                         onClick={() => setExpandedId(expanded ? null : bp.id)}
-                        className="mt-1 text-xs text-purple-300 hover:text-purple-200"
+                        className="mt-1 text-xs text-brand-300 hover:text-brand-200"
                       >
                         Materials{mats.length > 0 ? ` (${gathered}/${mats.length})` : ''}{' '}
                         {expanded ? '▾' : '▸'}
@@ -632,7 +632,7 @@ export default function BlueprintCard() {
                         onChange={(e) =>
                           updateBlueprint(bp.id, { status: e.target.value as BlueprintStatus })
                         }
-                        className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-300 focus:border-purple-500 focus:outline-none"
+                        className="rounded border border-hull-700 bg-hull-900 px-2 py-1 text-xs text-hull-300 focus:border-brand-500 focus:outline-none"
                       >
                         {STATUS_ORDER.map((s) => (
                           <option key={s} value={s}>

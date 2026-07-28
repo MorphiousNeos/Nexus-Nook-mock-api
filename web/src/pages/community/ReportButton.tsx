@@ -32,7 +32,7 @@ export default function ReportButton({
   }
 
   if (status === 'done') {
-    return <span className="text-xs text-emerald-400">Reported ✓</span>
+    return <span className="text-xs text-positive-400">Reported ✓</span>
   }
 
   return (
@@ -40,7 +40,7 @@ export default function ReportButton({
       type="button"
       onClick={handleClick}
       disabled={status === 'busy'}
-      className="text-xs text-slate-500 underline-offset-2 transition hover:text-amber-300 hover:underline disabled:opacity-60"
+      className="text-xs text-hull-500 underline-offset-2 transition hover:text-caution-300 hover:underline disabled:opacity-60"
       title="Flag this for the moderators"
     >
       {status === 'busy' ? 'Reporting…' : status === 'error' ? 'Failed — retry?' : 'Report'}

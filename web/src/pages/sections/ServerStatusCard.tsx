@@ -48,7 +48,7 @@ export default function ServerStatusCard() {
   return (
     <Card title="Server Status" icon="📡">
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-hull-400">
           Official platform status and regional shard overview.
         </p>
         <Button variant="ghost" onClick={refresh} disabled={loading}>
@@ -60,7 +60,7 @@ export default function ServerStatusCard() {
 
       {!error && (
         <div className="mb-5">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-hull-500">
             Official platform status
           </h3>
           {platform && platform.length > 0 ? (
@@ -69,22 +69,22 @@ export default function ServerStatusCard() {
                 {platform.map((p) => (
                   <li
                     key={p.name}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-2"
                   >
-                    <span className="text-sm font-medium text-slate-100">{p.name}</span>
+                    <span className="text-sm font-medium text-hull-100">{p.name}</span>
                     <Badge tone={TONE[p.status]} dot>
                       {LABEL[p.status]}
                     </Badge>
                   </li>
                 ))}
               </ul>
-              <p className="mt-2 text-[11px] text-slate-500">
+              <p className="mt-2 text-[11px] text-hull-500">
                 Source:{' '}
                 <a
                   href="https://status.robertsspaceindustries.com"
                   target="_blank"
                   rel="noreferrer"
-                  className="underline hover:text-slate-300"
+                  className="underline hover:text-hull-300"
                 >
                   status.robertsspaceindustries.com
                 </a>{' '}
@@ -92,7 +92,7 @@ export default function ServerStatusCard() {
               </p>
             </>
           ) : (
-            <p className="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-3 text-xs text-slate-500">
+            <p className="rounded-lg border border-hull-800 bg-hull-950/40 px-3 py-3 text-xs text-hull-500">
               {isDemo
                 ? 'Live platform status is available on the hosted app (it needs the backend proxy).'
                 : loading
@@ -104,9 +104,9 @@ export default function ServerStatusCard() {
       )}
 
       {!error && (
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-hull-500">
           Regional shards{' '}
-          <span className="font-normal normal-case text-slate-600">
+          <span className="font-normal normal-case text-hull-600">
             (illustrative — CIG publishes no per-shard numbers)
           </span>
         </h3>
@@ -125,15 +125,15 @@ export default function ServerStatusCard() {
           {servers.map((s) => (
             <li
               key={s.region}
-              className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2 transition hover:border-slate-700"
+              className="flex items-center justify-between gap-3 rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-2 transition hover:border-hull-700"
             >
               <div className="flex items-center gap-3">
                 <Badge tone={TONE[s.status]} dot>
                   {LABEL[s.status]}
                 </Badge>
-                <span className="text-sm font-medium text-slate-100">{s.region}</span>
+                <span className="text-sm font-medium text-hull-100">{s.region}</span>
               </div>
-              <div className="flex items-center gap-4 text-xs text-slate-400">
+              <div className="flex items-center gap-4 text-xs text-hull-400">
                 <span>{s.players.toLocaleString()} players</span>
                 <span>{s.latency} ms</span>
               </div>

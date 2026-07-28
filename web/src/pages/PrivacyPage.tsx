@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-8">
-      <h2 className="font-display text-lg font-semibold text-slate-100">{title}</h2>
-      <div className="mt-2 space-y-2 text-sm leading-relaxed text-slate-300">{children}</div>
+      <h2 className="font-display text-lg font-semibold text-hull-100">{title}</h2>
+      <div className="mt-2 space-y-2 text-sm leading-relaxed text-hull-300">{children}</div>
     </section>
   )
 }
@@ -12,13 +12,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <Link to="/" className="text-sm text-purple-300 hover:underline">
+      <Link to="/" className="text-sm text-brand-300 hover:underline">
         ← Back to Nexus Nook
       </Link>
-      <h1 className="mt-4 font-display text-3xl font-bold text-slate-100">Privacy Policy</h1>
-      <p className="mt-1 text-xs text-slate-500">Last updated: July 4, 2026</p>
+      <h1 className="mt-4 font-display text-3xl font-bold text-hull-100">Privacy Policy</h1>
+      <p className="mt-1 text-xs text-hull-500">Last updated: July 4, 2026</p>
 
-      <p className="mt-6 text-sm leading-relaxed text-slate-300">
+      <p className="mt-6 text-sm leading-relaxed text-hull-300">
         Nexus Nook is a free, fan-made companion app for Star Citizen. We collect the
         minimum needed to run the app, we never sell data, and you can delete everything
         yourself at any time. This page explains it in plain language.
@@ -88,7 +88,7 @@ export default function PrivacyPage() {
           your account and everything attached to it (fleet, inventory, blueprints,
           posts, listings, org memberships, and orgs you own). This is immediate and
           irreversible. You can also email{' '}
-          <a href="mailto:cole@houstonshome.com" className="text-purple-300 hover:underline">
+          <a href="mailto:cole@houstonshome.com" className="text-brand-300 hover:underline">
             cole@houstonshome.com
           </a>{' '}
           and we'll do it for you.

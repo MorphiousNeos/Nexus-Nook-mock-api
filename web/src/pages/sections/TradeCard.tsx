@@ -27,7 +27,7 @@ function margin(c: Commodity): number | undefined {
 }
 
 function Attribution() {
-  return <p className="mt-4 text-[11px] leading-snug text-slate-600">{ATTRIBUTION}</p>
+  return <p className="mt-4 text-[11px] leading-snug text-hull-600">{ATTRIBUTION}</p>
 }
 
 export default function TradeCard() {
@@ -132,7 +132,7 @@ export default function TradeCard() {
   return (
     <Card title="Trade" icon="💱">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-hull-400">
           Live Star Citizen commodity prices — tap a row for every terminal trading it.
         </p>
         <Button variant="ghost" onClick={load} disabled={loading}>
@@ -165,13 +165,13 @@ export default function TradeCard() {
               onChange={(e) => setFilter(e.target.value)}
             />
             <label className="block">
-              <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+              <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
                 Sort
               </span>
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as SortKey)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                className="w-full rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               >
                 <option value="margin">Margin (high → low)</option>
                 <option value="name">Name (A → Z)</option>
@@ -187,12 +187,12 @@ export default function TradeCard() {
             </EmptyState>
           ) : (
             <div
-              className={`overflow-y-auto rounded-lg border border-slate-800 ${
+              className={`overflow-y-auto rounded-lg border border-hull-800 ${
                 selectedId ? 'max-h-[34rem]' : 'max-h-80'
               }`}
             >
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-slate-900/95 text-left text-xs uppercase tracking-wider text-slate-400 backdrop-blur">
+                <thead className="sticky top-0 bg-hull-900/95 text-left text-xs uppercase tracking-wider text-hull-400 backdrop-blur">
                   <tr>
                     <th className="px-3 py-2 font-medium">Name</th>
                     <th className="px-3 py-2 text-right font-medium">Buy</th>
@@ -209,11 +209,11 @@ export default function TradeCard() {
                     return (
                       <React.Fragment key={(c.id ?? c.code ?? c.name) + ':' + i}>
                         <tr
-                          className={`border-t border-slate-800/70 ${
+                          className={`border-t border-hull-800/70 ${
                             expandable
-                              ? 'cursor-pointer hover:bg-slate-800/40 focus:bg-slate-800/40 focus:outline-none'
+                              ? 'cursor-pointer hover:bg-hull-800/40 focus:bg-hull-800/40 focus:outline-none'
                               : ''
-                          } ${isSelected ? 'bg-slate-800/50' : ''}`}
+                          } ${isSelected ? 'bg-hull-800/50' : ''}`}
                           {...(expandable
                             ? {
                                 role: 'button',
@@ -229,37 +229,37 @@ export default function TradeCard() {
                               }
                             : {})}
                         >
-                          <td className="px-3 py-2 text-slate-100">
+                          <td className="px-3 py-2 text-hull-100">
                             {expandable && (
-                              <span className="mr-1 inline-block text-xs text-slate-500">
+                              <span className="mr-1 inline-block text-xs text-hull-500">
                                 {isSelected ? '▾' : '▸'}
                               </span>
                             )}
                             {c.name}
                             {c.code && (
-                              <span className="ml-1 text-xs text-slate-500">{c.code}</span>
+                              <span className="ml-1 text-xs text-hull-500">{c.code}</span>
                             )}
                           </td>
-                          <td className="px-3 py-2 text-right tabular-nums text-slate-300">
+                          <td className="px-3 py-2 text-right tabular-nums text-hull-300">
                             {fmtPrice(c.priceBuy)}
                           </td>
-                          <td className="px-3 py-2 text-right tabular-nums text-slate-300">
+                          <td className="px-3 py-2 text-right tabular-nums text-hull-300">
                             {fmtPrice(c.priceSell)}
                           </td>
                           <td
                             className={`px-3 py-2 text-right tabular-nums ${
                               m === undefined
-                                ? 'text-slate-500'
+                                ? 'text-hull-500'
                                 : m >= 0
-                                  ? 'text-emerald-300'
-                                  : 'text-red-300'
+                                  ? 'text-positive-300'
+                                  : 'text-danger-300'
                             }`}
                           >
                             {m === undefined ? '—' : fmtPrice(m)}
                           </td>
                         </tr>
                         {isSelected && (
-                          <tr className="border-t border-slate-800/70 bg-slate-950/30">
+                          <tr className="border-t border-hull-800/70 bg-hull-950/30">
                             <td colSpan={4} className="p-0">
                               <CommodityRoute
                                 loading={routeLoading}
@@ -279,7 +279,7 @@ export default function TradeCard() {
           )}
 
           {filteredSorted.length > 0 && (
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-hull-500">
               Showing {visible.length} of {filteredSorted.length}
               {filter.trim() ? ' matching' : ''} commodit
               {filteredSorted.length === 1 ? 'y' : 'ies'}

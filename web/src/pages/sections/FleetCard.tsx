@@ -145,13 +145,13 @@ export default function FleetCard() {
         </Button>
       }
     >
-      <p className="mb-4 text-xs text-slate-400">
+      <p className="mb-4 text-xs text-hull-400">
         Your personal fleet — ships you add yourself. This is your own data; Nexus Nook does
         not import from or scrape RSI.
       </p>
 
       {pickerOpen && (
-        <div className="mb-5 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+        <div className="mb-5 rounded-xl border border-hull-800 bg-hull-950/50 p-4">
           <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
             <Field
               label="Search the Star Citizen ship catalog"
@@ -161,13 +161,13 @@ export default function FleetCard() {
               autoFocus
             />
             <label className="block">
-              <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+              <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
                 Acquired
               </span>
               <select
                 value={acquired}
                 onChange={(e) => setAcquired(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 transition focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 sm:w-48"
+                className="w-full rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 transition focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-48"
               >
                 {ACQUIRED_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -178,25 +178,25 @@ export default function FleetCard() {
             </label>
           </div>
 
-          <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40">
+          <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border border-hull-800 bg-hull-950/40">
             {loading && (
-              <p className="px-3 py-6 text-center text-sm text-slate-500">
+              <p className="px-3 py-6 text-center text-sm text-hull-500">
                 Loading ship catalog…
               </p>
             )}
 
             {!loading && loadError && (
-              <p className="px-3 py-4 text-sm text-amber-300">{loadError}</p>
+              <p className="px-3 py-4 text-sm text-caution-300">{loadError}</p>
             )}
 
             {!loading && !loadError && catalog && results.length === 0 && (
-              <p className="px-3 py-6 text-center text-sm text-slate-500">
+              <p className="px-3 py-6 text-center text-sm text-hull-500">
                 No ships match “{query}”.
               </p>
             )}
 
             {!loading && !loadError && results.length > 0 && (
-              <ul className="divide-y divide-slate-800/70">
+              <ul className="divide-y divide-hull-800/70">
                 {results.map((v) => {
                   const key = String(v.id ?? v.name)
                   const meta = describeVehicle(v)
@@ -206,8 +206,8 @@ export default function FleetCard() {
                       className="flex items-center justify-between gap-3 px-3 py-2"
                     >
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-slate-100">{v.name}</p>
-                        <p className="truncate text-xs text-slate-400">
+                        <p className="truncate font-medium text-hull-100">{v.name}</p>
+                        <p className="truncate text-xs text-hull-400">
                           {[v.manufacturer, meta].filter(Boolean).join(' · ') ||
                             'Unspecified'}
                         </p>
@@ -228,7 +228,7 @@ export default function FleetCard() {
           </div>
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-hull-500">
               Ship data from UEX Corp (uexcorp.space) — community-run, not affiliated with
               CIG.
             </p>
@@ -240,7 +240,7 @@ export default function FleetCard() {
           {customOpen && (
             <form
               onSubmit={submitCustom}
-              className="mt-3 grid gap-3 border-t border-slate-800 pt-3 sm:grid-cols-2"
+              className="mt-3 grid gap-3 border-t border-hull-800 pt-3 sm:grid-cols-2"
             >
               <Field
                 label="Ship name"
@@ -304,7 +304,7 @@ export default function FleetCard() {
           return (
             <li
               key={ship.id}
-              className="rounded-lg border border-slate-800 bg-slate-950/50"
+              className="rounded-lg border border-hull-800 bg-hull-950/50"
             >
               <div className="flex items-start justify-between gap-3 px-3 py-2">
                 <div
@@ -314,25 +314,25 @@ export default function FleetCard() {
                   aria-controls={`ship-detail-${ship.id}`}
                   onClick={toggle}
                   onKeyDown={onKey}
-                  className="min-w-0 flex-1 cursor-pointer rounded outline-none transition focus-visible:ring-2 focus-visible:ring-purple-500"
+                  className="min-w-0 flex-1 cursor-pointer rounded outline-none transition focus-visible:ring-2 focus-visible:ring-brand-500"
                 >
                   <div className="flex items-center gap-2">
                     <span
                       aria-hidden
-                      className={`text-xs text-slate-500 transition-transform ${
+                      className={`text-xs text-hull-500 transition-transform ${
                         expanded ? 'rotate-90' : ''
                       }`}
                     >
                       ▶
                     </span>
-                    <p className="truncate font-medium text-slate-100">{ship.name}</p>
+                    <p className="truncate font-medium text-hull-100">{ship.name}</p>
                   </div>
-                  <p className="ml-5 truncate text-xs text-slate-400">
+                  <p className="ml-5 truncate text-xs text-hull-400">
                     {[ship.manufacturer, ship.type].filter(Boolean).join(' · ') ||
                       'Unspecified'}
                   </p>
                   {ship.notes && (
-                    <p className="ml-5 mt-1 truncate text-xs text-slate-500">
+                    <p className="ml-5 mt-1 truncate text-xs text-hull-500">
                       {ship.notes}
                     </p>
                   )}
