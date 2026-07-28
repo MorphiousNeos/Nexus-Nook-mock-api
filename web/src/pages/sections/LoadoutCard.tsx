@@ -39,12 +39,12 @@ function BuyLocations({ uexId }: { uexId: number | string }) {
   }, [uexId])
 
   if (loading) {
-    return <p className="px-2 py-1.5 text-xs text-slate-500">Checking shops…</p>
+    return <p className="px-2 py-1.5 text-xs text-hull-500">Checking shops…</p>
   }
-  if (error) return <p className="px-2 py-1.5 text-xs text-amber-300">{error}</p>
+  if (error) return <p className="px-2 py-1.5 text-xs text-caution-300">{error}</p>
   if (!prices || prices.length === 0) {
     return (
-      <p className="px-2 py-1.5 text-xs text-slate-500">
+      <p className="px-2 py-1.5 text-xs text-hull-500">
         No shop listings found — it may be loot-only or the data is pending.
       </p>
     )
@@ -53,11 +53,11 @@ function BuyLocations({ uexId }: { uexId: number | string }) {
     <ul className="space-y-1 px-2 py-1.5">
       {prices.slice(0, 5).map((p, i) => (
         <li key={`${p.terminalName}-${i}`} className="flex items-baseline justify-between gap-2 text-xs">
-          <span className="min-w-0 truncate text-slate-300">
+          <span className="min-w-0 truncate text-hull-300">
             {p.terminalName}
-            {p.system ? <span className="text-slate-500"> · {p.system}</span> : null}
+            {p.system ? <span className="text-hull-500"> · {p.system}</span> : null}
           </span>
-          <span className="shrink-0 tabular-nums text-emerald-300">
+          <span className="shrink-0 tabular-nums text-positive-300">
             {p.priceBuy !== undefined ? `${p.priceBuy.toLocaleString()} aUEC` : '—'}
           </span>
         </li>
@@ -177,7 +177,7 @@ export default function LoadoutCard() {
         </Button>
       }
     >
-      <p className="mb-4 text-xs text-slate-400">
+      <p className="mb-4 text-xs text-hull-400">
         Component builds for your ships — with "where do I buy this" answers on tap.
         Mark a build saved once you store it via in-game Item Recovery.
       </p>
@@ -185,7 +185,7 @@ export default function LoadoutCard() {
       {formOpen && (
         <form
           onSubmit={submit}
-          className="mb-5 grid gap-3 rounded-xl border border-slate-800 bg-slate-950/50 p-4 sm:grid-cols-2"
+          className="mb-5 grid gap-3 rounded-xl border border-hull-800 bg-hull-950/50 p-4 sm:grid-cols-2"
         >
           <Field
             label="Loadout name"
@@ -195,7 +195,7 @@ export default function LoadoutCard() {
             autoFocus
           />
           <label className="block">
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
               Ship
             </span>
             <input
@@ -203,7 +203,7 @@ export default function LoadoutCard() {
               placeholder="Cutlass Black"
               value={ship}
               onChange={(e) => setShip(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-purple-500 focus:outline-none"
+              className="w-full rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 placeholder-hull-500 focus:border-brand-500 focus:outline-none"
             />
             <datalist id="nn-fleet-ships">
               {fleet.map((s) => (
@@ -232,7 +232,7 @@ export default function LoadoutCard() {
           return (
             <li
               key={lo.id}
-              className="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-3"
+              className="rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-3"
             >
               <div className="flex items-start justify-between gap-3">
                 <button
@@ -246,11 +246,11 @@ export default function LoadoutCard() {
                   className="min-w-0 flex-1 text-left"
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium text-slate-100">{lo.name}</p>
+                    <p className="font-medium text-hull-100">{lo.name}</p>
                     <Badge tone="purple">{lo.ship}</Badge>
                     {lo.savedInGame && <Badge tone="green">Saved in game</Badge>}
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-hull-500">
                     {lo.components.length}{' '}
                     {lo.components.length === 1 ? 'component' : 'components'}{' '}
                     {expanded ? '▾' : '▸'}
@@ -266,15 +266,15 @@ export default function LoadoutCard() {
               </div>
 
               {expanded && (
-                <div className="mt-3 space-y-3 border-t border-slate-800 pt-3">
-                  <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+                <div className="mt-3 space-y-3 border-t border-hull-800 pt-3">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-hull-300">
                     <input
                       type="checkbox"
                       checked={lo.savedInGame}
                       onChange={(e) =>
                         updateLoadout(lo.id, { savedInGame: e.target.checked })
                       }
-                      className="h-4 w-4 rounded border-slate-600 bg-slate-900 accent-purple-500"
+                      className="h-4 w-4 rounded border-hull-600 bg-hull-900 accent-brand-500"
                     />
                     Saved via in-game Item Recovery
                   </label>
@@ -284,13 +284,13 @@ export default function LoadoutCard() {
                       {lo.components.map((c) => (
                         <li
                           key={c.id}
-                          className="rounded-lg border border-slate-800 bg-slate-950/40"
+                          className="rounded-lg border border-hull-800 bg-hull-950/40"
                         >
                           <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-                            <span className="min-w-0 truncate text-sm text-slate-200">
+                            <span className="min-w-0 truncate text-sm text-hull-200">
                               {c.name}
                               {c.category && (
-                                <span className="ml-1.5 text-[11px] text-slate-500">
+                                <span className="ml-1.5 text-[11px] text-hull-500">
                                   {c.category}
                                 </span>
                               )}
@@ -310,7 +310,7 @@ export default function LoadoutCard() {
                               <button
                                 type="button"
                                 onClick={() => removeComponent(lo, c.id)}
-                                className="text-xs text-slate-600 hover:text-red-400"
+                                className="text-xs text-hull-600 hover:text-danger-400"
                                 aria-label={`Remove ${c.name}`}
                               >
                                 ✕
@@ -318,7 +318,7 @@ export default function LoadoutCard() {
                             </span>
                           </div>
                           {priceOpenFor === c.id && c.uexId !== undefined && (
-                            <div className="border-t border-slate-800/70">
+                            <div className="border-t border-hull-800/70">
                               <BuyLocations uexId={c.uexId} />
                             </div>
                           )}
@@ -328,11 +328,11 @@ export default function LoadoutCard() {
                   )}
 
                   {/* Component picker */}
-                  <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
-                    <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-400">
+                  <div className="rounded-lg border border-hull-800 bg-hull-950/40 p-3">
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wider text-hull-400">
                       Add component
                     </p>
-                    {catError && <p className="text-xs text-amber-300">{catError}</p>}
+                    {catError && <p className="text-xs text-caution-300">{catError}</p>}
                     <div className="flex flex-wrap gap-2">
                       <select
                         value={selectedCat}
@@ -341,7 +341,7 @@ export default function LoadoutCard() {
                           setSearch('')
                         }}
                         disabled={!categories}
-                        className="min-w-[10rem] flex-1 rounded-lg border border-slate-700 bg-slate-950/60 px-2 py-1.5 text-sm text-slate-100 focus:border-purple-500 focus:outline-none disabled:opacity-60"
+                        className="min-w-[10rem] flex-1 rounded-lg border border-hull-700 bg-hull-950/60 px-2 py-1.5 text-sm text-hull-100 focus:border-brand-500 focus:outline-none disabled:opacity-60"
                       >
                         <option value="">
                           {categories ? 'Choose a category…' : 'Loading categories…'}
@@ -357,34 +357,34 @@ export default function LoadoutCard() {
                           placeholder="Search…"
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
-                          className="min-w-[8rem] flex-1 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:border-purple-500 focus:outline-none"
+                          className="min-w-[8rem] flex-1 rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-1.5 text-sm text-hull-100 placeholder-hull-500 focus:border-brand-500 focus:outline-none"
                         />
                       )}
                     </div>
 
                     {selectedCat && (
-                      <div className="mt-2 max-h-48 overflow-y-auto rounded border border-slate-800/70">
+                      <div className="mt-2 max-h-48 overflow-y-auto rounded border border-hull-800/70">
                         {itemsLoading && (
-                          <p className="px-3 py-4 text-center text-xs text-slate-500">
+                          <p className="px-3 py-4 text-center text-xs text-hull-500">
                             Loading…
                           </p>
                         )}
                         {!itemsLoading && filtered.length === 0 && (
-                          <p className="px-3 py-4 text-center text-xs text-slate-500">
+                          <p className="px-3 py-4 text-center text-xs text-hull-500">
                             Nothing matches.
                           </p>
                         )}
                         {!itemsLoading && filtered.length > 0 && (
-                          <ul className="divide-y divide-slate-800/60">
+                          <ul className="divide-y divide-hull-800/60">
                             {filtered.map((item) => (
                               <li
                                 key={String(item.id ?? item.name)}
                                 className="flex items-center justify-between gap-2 px-2.5 py-1.5"
                               >
-                                <span className="min-w-0 truncate text-sm text-slate-200">
+                                <span className="min-w-0 truncate text-sm text-hull-200">
                                   {item.name}
                                   {item.manufacturer && (
-                                    <span className="ml-1.5 text-[11px] text-slate-500">
+                                    <span className="ml-1.5 text-[11px] text-hull-500">
                                       {item.manufacturer}
                                     </span>
                                   )}
@@ -404,14 +404,14 @@ export default function LoadoutCard() {
                     )}
                   </div>
 
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-hull-500">
                     Component data &amp; shop prices from UEX Corp (uexcorp.space). For full
                     DPS simulation, open{' '}
                     <a
                       href="https://erkul.games/calculator"
                       target="_blank"
                       rel="noreferrer"
-                      className="text-purple-300 underline hover:text-purple-200"
+                      className="text-brand-300 underline hover:text-brand-200"
                     >
                       erkul.games ↗
                     </a>

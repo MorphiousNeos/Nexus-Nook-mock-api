@@ -80,8 +80,8 @@ export default function Landing() {
       <SpaceBackdrop />
       <main className="relative mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-2 md:items-center md:py-20">
       <section className="text-center md:text-left">
-        <div className="nn-rise nn-rise-1 mb-6 inline-flex items-center gap-2 border border-cyan-400/30 bg-cyan-950/20 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.25em] text-cyan-300/90 backdrop-blur">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.9)]" aria-hidden />
+        <div className="nn-rise nn-rise-1 mb-6 inline-flex items-center gap-2 border border-accent-400/30 bg-accent-950/20 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.25em] text-accent-300/90 backdrop-blur">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-400 shadow-[0_0_8px_rgba(34,211,238,0.9)]" aria-hidden />
           Unofficial fan companion
         </div>
         <div className="nn-rise nn-rise-2 mb-5">
@@ -102,18 +102,18 @@ export default function Landing() {
         </div>
         <div className="nn-rise nn-rise-3 mb-6 flex items-center justify-center gap-3 md:justify-start">
           <span
-            className="h-px w-10 bg-gradient-to-r from-cyan-400 to-transparent"
+            className="h-px w-10 bg-gradient-to-r from-accent-400 to-transparent"
             aria-hidden
           />
-          <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-slate-400 [text-shadow:0_2px_10px_rgb(2_6_23)]">
+          <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-hull-400 [text-shadow:0_2px_10px_rgb(2_6_23)]">
             Star Citizen Companion
           </span>
         </div>
-        <p className="nn-rise nn-rise-3 mt-4 text-lg font-medium text-slate-200 md:text-xl">
+        <p className="nn-rise nn-rise-3 mt-4 text-lg font-medium text-hull-200 md:text-xl">
           Your cockpit for the whole verse. Fleet, trade routes, hauling, crafting,
           mining crews, live timers, and a community — one app, in your pocket.
         </p>
-        <p className="nn-rise nn-rise-3 mt-3 text-sm text-slate-400">
+        <p className="nn-rise nn-rise-3 mt-3 text-sm text-hull-400">
           A companion app for Star Citizen players. Bring your own public RSI handle; we
           never ask for a password.
         </p>
@@ -122,7 +122,7 @@ export default function Landing() {
           {features.map((f) => (
             <li
               key={f.label}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/60 px-3 py-1 text-xs text-slate-300 backdrop-blur transition hover:-translate-y-0.5 hover:border-purple-700/60 hover:text-purple-200"
+              className="inline-flex items-center gap-1.5 rounded-full border border-hull-800 bg-hull-900/60 px-3 py-1 text-xs text-hull-300 backdrop-blur transition hover:-translate-y-0.5 hover:border-brand-700/60 hover:text-brand-200"
             >
               <span aria-hidden>{f.icon}</span>
               {f.label}
@@ -133,20 +133,20 @@ export default function Landing() {
         <div className="nn-rise nn-rise-5 mt-8 flex flex-col items-center gap-3 sm:flex-row md:items-start">
           <DiscordButton />
           {isDemo && (
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-hull-500">
               Running in demo mode — your data stays in this browser.
             </span>
           )}
         </div>
       </section>
 
-      <section className="nn-rise nn-rise-3 relative rounded-2xl border border-slate-800/80 bg-slate-900/70 p-6 shadow-2xl shadow-black/40 backdrop-blur sm:p-7">
+      <section className="nn-rise nn-rise-3 relative rounded-2xl border border-hull-800/80 bg-hull-900/70 p-6 shadow-2xl shadow-black/40 backdrop-blur sm:p-7">
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent"
         />
         <h2 className="font-display text-xl font-semibold">Enter the Nook</h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-hull-400">
           {isDemo
             ? 'Demo mode creates a local profile on this device. No account needed.'
             : 'Enter to create or resume your account.'}
@@ -185,7 +185,7 @@ export default function Landing() {
             value={rsiHandle}
             onChange={(e) => setRsiHandle(e.target.value)}
           />
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-danger-400">{error}</p>}
           <Button type="submit" disabled={busy} className="w-full">
             {busy ? 'Entering…' : 'Enter Nexus Nook'}
           </Button>
@@ -193,10 +193,10 @@ export default function Landing() {
 
         {!isDemo && API_BASE && (
           <>
-            <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-widest text-slate-600">
-              <span className="h-px flex-1 bg-slate-800" aria-hidden />
+            <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-widest text-hull-600">
+              <span className="h-px flex-1 bg-hull-800" aria-hidden />
               or
-              <span className="h-px flex-1 bg-slate-800" aria-hidden />
+              <span className="h-px flex-1 bg-hull-800" aria-hidden />
             </div>
             <a
               href={`${API_BASE}/api/auth/discord`}
@@ -223,7 +223,7 @@ export default function Landing() {
               </svg>
               {waking ? 'Waking the server…' : 'Sign in with Discord'}
             </a>
-            <p className="mt-2 text-center text-[11px] text-slate-500">
+            <p className="mt-2 text-center text-[11px] text-hull-500">
               {waking
                 ? 'The server sleeps when idle — this can take up to a minute the first time.'
                 : 'We only read your Discord display name — never your servers or messages.'}
@@ -231,7 +231,7 @@ export default function Landing() {
           </>
         )}
 
-        <p className="mt-4 text-center text-xs text-slate-500">
+        <p className="mt-4 text-center text-xs text-hull-500">
           {isDemo
             ? 'No password required. This is a free, fan-made tool.'
             : 'Free, fan-made tool. We never ask for your RSI password.'}

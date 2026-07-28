@@ -44,7 +44,7 @@ function isHttpUrl(url?: string): url is string {
 }
 
 function Attribution() {
-  return <p className="mt-4 text-[11px] leading-snug text-slate-600">{ATTRIBUTION}</p>
+  return <p className="mt-4 text-[11px] leading-snug text-hull-600">{ATTRIBUTION}</p>
 }
 
 function LoadingList() {
@@ -53,7 +53,7 @@ function LoadingList() {
       {Array.from({ length: 6 }, (_, i) => (
         <li
           key={i}
-          className="flex items-start gap-4 rounded-lg border border-slate-800/70 bg-slate-950/40 p-3"
+          className="flex items-start gap-4 rounded-lg border border-hull-800/70 bg-hull-950/40 p-3"
         >
           <Skeleton className="h-16 w-24 shrink-0" />
           <div className="min-w-0 flex-1 space-y-2 py-1">
@@ -111,7 +111,7 @@ export default function NewsCard() {
   return (
     <Card title="News" icon="📰">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-hull-400">
           The latest official Comm-Links from the RSI network.
         </p>
         <Button variant="ghost" onClick={load} disabled={loading}>
@@ -145,7 +145,7 @@ export default function NewsCard() {
             return (
               <li
                 key={(item.id ?? item.url ?? item.title) + ':' + i}
-                className="flex items-start gap-4 rounded-lg border border-slate-800/70 bg-slate-950/40 p-3 transition hover:border-slate-700/80 hover:bg-slate-900/50"
+                className="flex items-start gap-4 rounded-lg border border-hull-800/70 bg-hull-950/40 p-3 transition hover:border-hull-700/80 hover:bg-hull-900/50"
               >
                 {isHttpUrl(item.imageUrl) && (
                   <img
@@ -156,16 +156,16 @@ export default function NewsCard() {
                   />
                 )}
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-medium text-slate-100">
+                  <h3 className="text-sm font-medium text-hull-100">
                     {item.url ? (
                       <a
                         href={item.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="transition hover:text-purple-300 focus:text-purple-300 focus:outline-none"
+                        className="transition hover:text-brand-300 focus:text-brand-300 focus:outline-none"
                       >
                         {item.title}
-                        <span aria-hidden className="ml-1 text-xs text-slate-500">
+                        <span aria-hidden className="ml-1 text-xs text-hull-500">
                           ↗
                         </span>
                       </a>
@@ -179,7 +179,7 @@ export default function NewsCard() {
                       {item.series && <Badge tone="slate">{item.series}</Badge>}
                     </div>
                   )}
-                  {when && <p className="mt-1.5 text-xs text-slate-500">{when}</p>}
+                  {when && <p className="mt-1.5 text-xs text-hull-500">{when}</p>}
                 </div>
               </li>
             )

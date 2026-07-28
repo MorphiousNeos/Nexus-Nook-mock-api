@@ -23,15 +23,15 @@ export default function SectionPage({
       <header className="nn-page-enter mb-7 flex items-start gap-3">
         <span
           aria-hidden
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-slate-700/70 bg-slate-800/60 text-2xl shadow-lg shadow-purple-950/20"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hull-700/70 bg-hull-800/60 text-2xl shadow-lg shadow-brand-950/20"
         >
           {icon}
         </span>
         <div className="min-w-0">
-          <h1 className="nn-heading-glow bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text font-display text-2xl font-semibold tracking-tight text-transparent sm:text-3xl lg:text-4xl">
+          <h1 className="nn-heading-glow bg-gradient-to-r from-blue-300 to-brand-300 bg-clip-text font-display text-2xl font-semibold tracking-tight text-transparent sm:text-3xl lg:text-4xl">
             {title}
           </h1>
-          <p className="mt-1 text-sm text-slate-400 lg:text-base">{description}</p>
+          <p className="mt-1 text-sm text-hull-400 lg:text-base">{description}</p>
         </div>
       </header>
       <div className="nn-page-enter nn-page-enter-body">{children}</div>

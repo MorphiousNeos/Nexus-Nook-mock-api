@@ -14,7 +14,7 @@ function Brand({ onClick }: { onClick?: () => void }) {
     >
       <img src="./icon.svg" alt="" width={30} height={30} className="h-[30px] w-[30px]" aria-hidden />
       <span className="font-display text-xl font-bold">
-        <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+        <span className="bg-gradient-to-r from-blue-400 to-brand-400 bg-clip-text text-transparent">
           Nexus Nook
         </span>
       </span>
@@ -33,12 +33,12 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
           className={({ isActive }) =>
             `flex items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition ${
               isActive
-                ? 'border-purple-700/60 bg-purple-950/40 text-purple-100 shadow-inner shadow-purple-950/40'
-                : 'border-transparent text-slate-300 hover:border-slate-700/70 hover:bg-slate-800/50 hover:text-slate-100'
+                ? 'border-brand-700/60 bg-brand-950/40 text-brand-100 shadow-inner shadow-brand-950/40'
+                : 'border-transparent text-hull-300 hover:border-hull-700/70 hover:bg-hull-800/50 hover:text-hull-100'
             }`
           }
         >
-          <span aria-hidden className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-slate-700/60 bg-slate-800/50 text-base">
+          <span aria-hidden className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-hull-700/60 bg-hull-800/50 text-base">
             {item.icon}
           </span>
           {item.label}
@@ -70,14 +70,14 @@ function MobileTabBar({
   const tabClass = (active: boolean) =>
     `flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[11px] font-medium transition ${
       active
-        ? 'text-purple-200'
-        : 'text-slate-400 hover:text-slate-200 active:text-slate-100'
+        ? 'text-brand-200'
+        : 'text-hull-400 hover:text-hull-200 active:text-hull-100'
     }`
 
   return (
     <nav
       aria-label="Primary mobile"
-      className="nn-tabbar fixed inset-x-0 bottom-0 z-40 border-t border-slate-800/70 bg-slate-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      className="nn-tabbar fixed inset-x-0 bottom-0 z-40 border-t border-hull-800/70 bg-hull-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
     >
       <div className="mx-auto flex max-w-lg items-stretch gap-1 px-2 py-1">
         {tabs.map((item) => {
@@ -97,7 +97,7 @@ function MobileTabBar({
                 aria-hidden
                 className={`grid h-7 w-7 place-items-center rounded-lg border text-base transition ${
                   active
-                    ? 'border-purple-600/60 bg-purple-950/60 shadow-inner shadow-purple-900/50'
+                    ? 'border-brand-600/60 bg-brand-950/60 shadow-inner shadow-brand-900/50'
                     : 'border-transparent'
                 }`}
               >
@@ -118,7 +118,7 @@ function MobileTabBar({
             aria-hidden
             className={`grid h-7 w-7 place-items-center rounded-lg border text-base transition ${
               drawerOpen
-                ? 'border-purple-600/60 bg-purple-950/60 shadow-inner shadow-purple-900/50'
+                ? 'border-brand-600/60 bg-brand-950/60 shadow-inner shadow-brand-900/50'
                 : 'border-transparent'
             }`}
           >
@@ -137,12 +137,12 @@ function SidebarFooter() {
   return (
     <div className="space-y-3">
       {profile && (
-        <div className="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2">
-          <p className="truncate text-sm font-medium text-slate-100">{profile.displayName}</p>
+        <div className="rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-2">
+          <p className="truncate text-sm font-medium text-hull-100">{profile.displayName}</p>
           {profile.rsiHandle ? (
-            <p className="truncate text-xs text-slate-500">· {profile.rsiHandle}</p>
+            <p className="truncate text-xs text-hull-500">· {profile.rsiHandle}</p>
           ) : (
-            <p className="truncate text-xs text-slate-500">{profile.email}</p>
+            <p className="truncate text-xs text-hull-500">{profile.email}</p>
           )}
         </div>
       )}
@@ -179,12 +179,12 @@ export default function AppShell() {
   return (
     <div className="mx-auto flex w-full max-w-7xl 2xl:max-w-[1400px]">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-800/70 bg-slate-950/60 px-4 py-5 backdrop-blur lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-hull-800/70 bg-hull-950/60 px-4 py-5 backdrop-blur lg:flex">
         <Brand />
         <div className="mt-6 flex-1 overflow-y-auto">
           <NavLinks />
         </div>
-        <div className="mt-4 border-t border-slate-800/70 pt-4">
+        <div className="mt-4 border-t border-hull-800/70 pt-4">
           <SidebarFooter />
         </div>
       </aside>
@@ -192,14 +192,14 @@ export default function AppShell() {
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-800/70 bg-slate-950/85 px-4 py-3 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-hull-800/70 bg-hull-950/85 px-4 py-3 backdrop-blur lg:hidden">
           <Brand />
           <button
             type="button"
             onClick={() => setMobileOpen((o) => !o)}
             aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
             aria-expanded={mobileOpen}
-            className="grid h-10 w-10 place-items-center rounded-lg border border-slate-700 bg-slate-800/50 text-slate-200 transition hover:bg-slate-700/60"
+            className="grid h-10 w-10 place-items-center rounded-lg border border-hull-700 bg-hull-800/50 text-hull-200 transition hover:bg-hull-700/60"
           >
             <span className="text-lg" aria-hidden>
               {mobileOpen ? '✕' : '☰'}
@@ -215,9 +215,9 @@ export default function AppShell() {
               onClick={() => setMobileOpen(false)}
               aria-hidden
             />
-            <div className="fixed inset-x-0 top-[57px] z-40 max-h-[calc(100vh-57px)] overflow-y-auto border-b border-slate-800/70 bg-slate-950/95 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 shadow-2xl shadow-black/50">
+            <div className="fixed inset-x-0 top-[57px] z-40 max-h-[calc(100vh-57px)] overflow-y-auto border-b border-hull-800/70 bg-hull-950/95 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 shadow-2xl shadow-black/50">
               <NavLinks onNavigate={() => setMobileOpen(false)} />
-              <div className="mt-5 border-t border-slate-800/70 pt-5">
+              <div className="mt-5 border-t border-hull-800/70 pt-5">
                 <SidebarFooter />
               </div>
             </div>

@@ -83,11 +83,11 @@ export default function CommunityFeed() {
       <Card title="Share an update" icon="✍️">
         <form onSubmit={submit} className="space-y-3">
           <label className="block">
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
               Post
             </span>
             <textarea
-              className="min-h-[80px] w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 transition focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="min-h-[80px] w-full rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 placeholder-hull-500 transition focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               placeholder="What's happening in the verse?"
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -99,7 +99,7 @@ export default function CommunityFeed() {
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
           />
-          {formError && <p className="text-sm text-amber-300">{formError}</p>}
+          {formError && <p className="text-sm text-caution-300">{formError}</p>}
           <Button type="submit" disabled={busy || !body.trim()}>
             {busy ? 'Posting…' : 'Post'}
           </Button>
@@ -134,10 +134,10 @@ export default function CommunityFeed() {
             {posts.map((p) => (
               <li
                 key={p.id}
-                className="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-3"
+                className="rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-3"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-hull-500">
                     {p.author || 'Unknown'} · {relativeTime(p.createdAt)}
                   </p>
                   <div className="flex shrink-0 items-center gap-3">
@@ -154,7 +154,7 @@ export default function CommunityFeed() {
                   </div>
                 </div>
                 {p.body && (
-                  <p className="mt-2 whitespace-pre-wrap text-sm text-slate-200">
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-hull-200">
                     {p.body}
                   </p>
                 )}
@@ -163,7 +163,7 @@ export default function CommunityFeed() {
                     src={p.imageUrl}
                     alt=""
                     loading="lazy"
-                    className="mt-3 max-h-80 w-full rounded-lg border border-slate-800 object-cover"
+                    className="mt-3 max-h-80 w-full rounded-lg border border-hull-800 object-cover"
                   />
                 )}
               </li>

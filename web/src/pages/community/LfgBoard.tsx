@@ -122,18 +122,18 @@ export default function LfgBoard() {
             onChange={(e) => setPlayers(e.target.value)}
           />
           <label className="block sm:col-span-2">
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
               Details
             </span>
             <textarea
-              className="min-h-[72px] w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 transition focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="min-h-[72px] w-full rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 placeholder-hull-500 transition focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               placeholder="Voice required, friendly crew, etc."
               value={body}
               onChange={(e) => setBody(e.target.value)}
             />
           </label>
           {formError && (
-            <p className="text-sm text-amber-300 sm:col-span-2">{formError}</p>
+            <p className="text-sm text-caution-300 sm:col-span-2">{formError}</p>
           )}
           <div className="sm:col-span-2">
             <Button type="submit" disabled={busy || !title.trim()}>
@@ -171,12 +171,12 @@ export default function LfgBoard() {
             {posts.map((p) => (
               <li
                 key={p.id}
-                className="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-3"
+                className="rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-medium text-slate-100">{p.title || 'Untitled'}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">
+                    <p className="font-medium text-hull-100">{p.title || 'Untitled'}</p>
+                    <p className="mt-0.5 text-xs text-hull-500">
                       {p.author || 'Unknown'} · {relativeTime(p.createdAt)}
                     </p>
                   </div>
@@ -205,7 +205,7 @@ export default function LfgBoard() {
                   </div>
                 )}
                 {p.body && (
-                  <p className="mt-2 whitespace-pre-wrap text-sm text-slate-300">
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-hull-300">
                     {p.body}
                   </p>
                 )}

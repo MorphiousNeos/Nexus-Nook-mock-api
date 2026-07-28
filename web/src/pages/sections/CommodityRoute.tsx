@@ -66,15 +66,15 @@ function bestSell(rows: TerminalPrice[]): TerminalPrice | undefined {
 }
 
 const CHIP_BASE =
-  'rounded-full border px-2.5 py-1 text-[11px] font-medium transition motion-reduce:transition-none focus:outline-none focus:ring-1 focus:ring-purple-500'
-const CHIP_ON = 'border-purple-600/70 bg-purple-900/40 text-purple-100'
+  'rounded-full border px-2.5 py-1 text-[11px] font-medium transition motion-reduce:transition-none focus:outline-none focus:ring-1 focus:ring-brand-500'
+const CHIP_ON = 'border-brand-600/70 bg-brand-900/40 text-brand-100'
 const CHIP_OFF =
-  'border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-600 hover:text-slate-200'
+  'border-hull-700 bg-hull-900/60 text-hull-400 hover:border-hull-600 hover:text-hull-200'
 
 const TAB_BASE =
-  'rounded-md px-2.5 py-1 text-[11px] font-medium transition motion-reduce:transition-none focus:outline-none focus:ring-1 focus:ring-purple-500'
-const TAB_ON = 'bg-purple-600/30 text-purple-100'
-const TAB_OFF = 'text-slate-400 hover:text-slate-200'
+  'rounded-md px-2.5 py-1 text-[11px] font-medium transition motion-reduce:transition-none focus:outline-none focus:ring-1 focus:ring-brand-500'
+const TAB_ON = 'bg-brand-600/30 text-brand-100'
+const TAB_OFF = 'text-hull-400 hover:text-hull-200'
 
 function Tile({
   label,
@@ -84,8 +84,8 @@ function Tile({
   children: ReactNode
 }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+    <div className="rounded-lg border border-hull-800 bg-hull-950/40 p-3">
+      <p className="text-[11px] font-medium uppercase tracking-wider text-hull-500">
         {label}
       </p>
       {children}
@@ -172,8 +172,8 @@ export default function CommodityRoute({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-3 py-3 text-xs text-slate-400">
-        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-600 border-t-purple-400 motion-reduce:animate-none" />
+      <div className="flex items-center gap-2 px-3 py-3 text-xs text-hull-400">
+        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-hull-600 border-t-purple-400 motion-reduce:animate-none" />
         Loading terminal prices…
       </div>
     )
@@ -210,26 +210,26 @@ export default function CommodityRoute({
         <Tile label="Best sell">
           {sell ? (
             <>
-              <p className="mt-1 text-sm text-slate-100">{where(sell)}</p>
-              <p className="text-sm tabular-nums text-purple-300">
+              <p className="mt-1 text-sm text-hull-100">{where(sell)}</p>
+              <p className="text-sm tabular-nums text-brand-300">
                 {fmtPrice(sellPrice(sell))} aUEC
               </p>
             </>
           ) : (
-            <p className="mt-1 text-sm text-slate-500">Nobody buying in {scopeNote}</p>
+            <p className="mt-1 text-sm text-hull-500">Nobody buying in {scopeNote}</p>
           )}
         </Tile>
 
         <Tile label="Best buy">
           {buy ? (
             <>
-              <p className="mt-1 text-sm text-slate-100">{where(buy)}</p>
+              <p className="mt-1 text-sm text-hull-100">{where(buy)}</p>
               <p className="text-sm tabular-nums text-sky-300">
                 {fmtPrice(buyPrice(buy))} aUEC
               </p>
             </>
           ) : (
-            <p className="mt-1 text-sm text-slate-500">Nobody selling in {scopeNote}</p>
+            <p className="mt-1 text-sm text-hull-500">Nobody selling in {scopeNote}</p>
           )}
         </Tile>
 
@@ -237,10 +237,10 @@ export default function CommodityRoute({
           <p
             className={`mt-1 text-sm tabular-nums ${
               profit === undefined
-                ? 'text-slate-500'
+                ? 'text-hull-500'
                 : profit > 0
-                  ? 'text-emerald-300'
-                  : 'text-red-300'
+                  ? 'text-positive-300'
+                  : 'text-danger-300'
             }`}
           >
             {profit === undefined ? '—' : `${fmtPrice(profit)} aUEC`}
@@ -249,9 +249,9 @@ export default function CommodityRoute({
       </div>
 
       {sell && (
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-hull-400">
           Offload{commodityName ? ` ${commodityName}` : ''} at{' '}
-          <span className="text-purple-300">{where(sell)}</span> for{' '}
+          <span className="text-brand-300">{where(sell)}</span> for{' '}
           {fmtPrice(sellPrice(sell))} aUEC/unit
           {buy && (
             <>
@@ -266,7 +266,7 @@ export default function CommodityRoute({
 
       <div className="flex flex-wrap items-center gap-2">
         <div
-          className="inline-flex rounded-lg border border-slate-700 bg-slate-950/60 p-0.5"
+          className="inline-flex rounded-lg border border-hull-700 bg-hull-950/60 p-0.5"
           role="group"
           aria-label="Sort terminals"
         >
@@ -293,16 +293,16 @@ export default function CommodityRoute({
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           aria-controls={tableId}
-          className="rounded-lg border border-slate-700 bg-slate-900/60 px-2.5 py-1 text-[11px] font-medium text-slate-300 transition hover:border-slate-600 hover:text-slate-100 motion-reduce:transition-none focus:outline-none focus:ring-1 focus:ring-purple-500"
+          className="rounded-lg border border-hull-700 bg-hull-900/60 px-2.5 py-1 text-[11px] font-medium text-hull-300 transition hover:border-hull-600 hover:text-hull-100 motion-reduce:transition-none focus:outline-none focus:ring-1 focus:ring-brand-500"
         >
-          <span aria-hidden className="mr-1 text-slate-500">
+          <span aria-hidden className="mr-1 text-hull-500">
             {open ? '▾' : '▸'}
           </span>
           {open ? 'Hide' : 'Show'} all {sorted.length} terminal
           {sorted.length === 1 ? '' : 's'}
         </button>
 
-        <span className="text-[11px] text-slate-500">
+        <span className="text-[11px] text-hull-500">
           {sellCount} sell point{sellCount === 1 ? '' : 's'} · {buyCount} buy point
           {buyCount === 1 ? '' : 's'}
         </span>
@@ -338,9 +338,9 @@ export default function CommodityRoute({
             <EmptyState>No terminals listed in {scopeNote}.</EmptyState>
           ) : (
             <>
-              <div className="hidden max-h-64 overflow-auto rounded-lg border border-slate-800 sm:block">
+              <div className="hidden max-h-64 overflow-auto rounded-lg border border-hull-800 sm:block">
                 <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-slate-900/95 text-left uppercase tracking-wider text-slate-500 backdrop-blur">
+                  <thead className="sticky top-0 bg-hull-900/95 text-left uppercase tracking-wider text-hull-500 backdrop-blur">
                     <tr>
                       <th className="px-3 py-1.5 font-medium">Terminal</th>
                       <th className="px-3 py-1.5 font-medium">System / location</th>
@@ -356,11 +356,11 @@ export default function CommodityRoute({
                       return (
                         <tr
                           key={`${t.terminalName}:${t.system ?? ''}:${i}`}
-                          className={`border-t border-slate-800/70 ${
-                            isBest ? 'bg-purple-950/25' : ''
+                          className={`border-t border-hull-800/70 ${
+                            isBest ? 'bg-brand-950/25' : ''
                           }`}
                         >
-                          <td className="px-3 py-1.5 text-slate-200">
+                          <td className="px-3 py-1.5 text-hull-200">
                             <span className="mr-1.5 align-middle">{t.terminalName}</span>
                             {isBest && (
                               <Badge tone="purple">
@@ -368,19 +368,19 @@ export default function CommodityRoute({
                               </Badge>
                             )}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-1.5 text-slate-400">
+                          <td className="whitespace-nowrap px-3 py-1.5 text-hull-400">
                             {t.system?.trim() ? t.system : '—'}
                           </td>
                           <td
                             className={`whitespace-nowrap px-3 py-1.5 text-right tabular-nums ${
-                              bv === undefined ? 'text-slate-600' : 'text-sky-300/90'
+                              bv === undefined ? 'text-hull-600' : 'text-sky-300/90'
                             }`}
                           >
                             {fmtPrice(bv)}
                           </td>
                           <td
                             className={`whitespace-nowrap px-3 py-1.5 text-right tabular-nums ${
-                              sv === undefined ? 'text-slate-600' : 'text-purple-200'
+                              sv === undefined ? 'text-hull-600' : 'text-brand-200'
                             }`}
                           >
                             {fmtPrice(sv)}
@@ -402,12 +402,12 @@ export default function CommodityRoute({
                       key={`${t.terminalName}:${t.system ?? ''}:${i}`}
                       className={`rounded-lg border p-2.5 ${
                         isBest
-                          ? 'border-purple-700/60 bg-purple-950/25'
-                          : 'border-slate-800 bg-slate-950/40'
+                          ? 'border-brand-700/60 bg-brand-950/25'
+                          : 'border-hull-800 bg-hull-950/40'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs font-medium text-slate-100">
+                        <p className="text-xs font-medium text-hull-100">
                           {t.terminalName}
                         </p>
                         {isBest && (
@@ -416,29 +416,29 @@ export default function CommodityRoute({
                           </Badge>
                         )}
                       </div>
-                      <p className="mt-0.5 text-[11px] text-slate-500">
+                      <p className="mt-0.5 text-[11px] text-hull-500">
                         {t.system?.trim() ? t.system : 'Location unlisted'}
                       </p>
                       <div className="mt-2 grid grid-cols-2 gap-2">
-                        <div className="rounded-md bg-slate-900/60 px-2 py-1">
-                          <p className="text-[10px] uppercase tracking-wider text-slate-500">
+                        <div className="rounded-md bg-hull-900/60 px-2 py-1">
+                          <p className="text-[10px] uppercase tracking-wider text-hull-500">
                             Buy
                           </p>
                           <p
                             className={`text-xs tabular-nums ${
-                              bv === undefined ? 'text-slate-600' : 'text-sky-300/90'
+                              bv === undefined ? 'text-hull-600' : 'text-sky-300/90'
                             }`}
                           >
                             {fmtPrice(bv)}
                           </p>
                         </div>
-                        <div className="rounded-md bg-slate-900/60 px-2 py-1">
-                          <p className="text-[10px] uppercase tracking-wider text-slate-500">
+                        <div className="rounded-md bg-hull-900/60 px-2 py-1">
+                          <p className="text-[10px] uppercase tracking-wider text-hull-500">
                             Sell
                           </p>
                           <p
                             className={`text-xs tabular-nums ${
-                              sv === undefined ? 'text-slate-600' : 'text-purple-200'
+                              sv === undefined ? 'text-hull-600' : 'text-brand-200'
                             }`}
                           >
                             {fmtPrice(sv)}
