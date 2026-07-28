@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useSession } from '../../SessionContext'
-import { Badge, Skeleton } from '../../components/ui'
+import { Badge, SectionLabel, Skeleton } from '../../components/ui'
 import DiscordButton from '../../components/DiscordButton'
 import { NAV_ITEMS } from '../../nav'
 import type { OpsActivity, ServerStatus, ServerStatusLevel } from '../../services/store'
@@ -78,31 +78,36 @@ function StatTile({
   value: string
   hint?: string
 }) {
+  // Instrument ordering: caption first, then the value. A gauge is read by
+  // finding the label you want and dropping to the number under it, so the
+  // value carries the visual weight and the caption stays quiet above it.
   return (
     <Link
       to={to}
-      className="group relative overflow-hidden rounded-2xl border border-hull-800/80 bg-hull-900/60 p-5 shadow-xl shadow-black/30 backdrop-blur transition duration-300 hover:border-brand-700/60 hover:shadow-2xl hover:shadow-brand-950/20"
+      className="group relative overflow-hidden rounded-card border border-line-subtle/80 bg-hull-900/60 p-5 shadow-card backdrop-blur transition-colors duration-ui ease-ui hover:border-brand-700/60 hover:bg-hull-900/80"
     >
       <span
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/40 to-transparent opacity-60"
       />
-      <div className="flex items-center justify-between">
-        <span
-          aria-hidden
-          className="grid h-9 w-9 place-items-center rounded-lg border border-hull-700/70 bg-hull-800/60 text-lg"
-        >
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-mono text-label uppercase text-hull-500">{label}</p>
+        <span aria-hidden className="text-sm leading-none opacity-70">
           {icon}
         </span>
-        <span className="text-hull-600 transition group-hover:translate-x-0.5 group-hover:text-brand-300" aria-hidden>
+      </div>
+      <p className="mt-2 font-display text-readout font-semibold tabular-nums text-hull-100">
+        {value}
+      </p>
+      <div className="mt-1 flex items-baseline justify-between gap-2">
+        <p className="min-w-0 truncate text-xs text-hull-500">{hint ?? ' '}</p>
+        <span
+          aria-hidden
+          className="shrink-0 text-hull-600 transition-transform duration-ui ease-ui group-hover:translate-x-0.5 group-hover:text-brand-300"
+        >
           →
         </span>
       </div>
-      <p className="mt-4 font-display text-2xl font-semibold tracking-tight text-hull-100">
-        {value}
-      </p>
-      <p className="mt-0.5 text-sm text-hull-400">{label}</p>
-      {hint && <p className="mt-1 text-xs text-hull-500">{hint}</p>}
     </Link>
   )
 }
@@ -159,16 +164,17 @@ function ExecHangarStrip() {
 
       <div className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-hull-500">
+          <p className="font-mono text-label uppercase text-hull-500">
             Executive Hangar · Pyro
           </p>
           {info && style ? (
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
               <Badge tone={style.tone} dot>
                 {style.label}
               </Badge>
               <span className="text-sm text-hull-400">{style.short}</span>
-              <span className="font-display text-3xl font-bold tabular-nums text-hull-100 sm:text-4xl">
+              {/* Tabular figures so the seconds tick without the line reflowing. */}
+              <span className="font-display text-4xl font-bold tabular-nums leading-none text-hull-100 sm:text-5xl">
                 {formatCountdown(info.msToNext)}
               </span>
             </div>
@@ -256,11 +262,14 @@ function CommLinksSection() {
 
   return (
     <section className="mt-10">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="font-display text-lg font-semibold tracking-wide text-hull-200">
-          Latest Comm-Links
-        </h2>
-        <Link to="/news" className="text-xs text-brand-300 transition hover:text-brand-200">
+      <div className="mb-4 flex items-center gap-3">
+        <span aria-hidden className="h-px w-8 bg-gradient-to-r from-brand-500 to-transparent" />
+        <h2 className="font-mono text-label uppercase text-hull-400">Latest Comm-Links</h2>
+        <span aria-hidden className="h-px flex-1 bg-line-subtle/70" />
+        <Link
+          to="/news"
+          className="shrink-0 font-mono text-label uppercase text-brand-300 transition-colors duration-ui ease-ui hover:text-brand-200"
+        >
           All news →
         </Link>
       </div>
@@ -600,9 +609,7 @@ export default function OverviewPage() {
 
       {hasResume && (
         <section className="mt-10">
-          <h2 className="mb-4 font-display text-lg font-semibold tracking-wide text-hull-200">
-            Pick up where you left off
-          </h2>
+          <SectionLabel>Pick up where you left off</SectionLabel>
           <div className="grid gap-4 lg:grid-cols-3">
             {resume.hauls.length > 0 && (
               <ResumePanel to="/hauling" icon="🚚" title="Hauling">
@@ -690,9 +697,7 @@ export default function OverviewPage() {
       <CommLinksSection />
 
       <section className="mt-10">
-        <h2 className="mb-4 font-display text-lg font-semibold tracking-wide text-hull-200">
-          Jump in
-        </h2>
+        <SectionLabel>Jump in</SectionLabel>
         <div className="grid gap-4 sm:grid-cols-3">
           {quickLinks.map((item) => (
             <Link

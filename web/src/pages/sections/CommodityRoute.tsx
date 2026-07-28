@@ -173,7 +173,7 @@ export default function CommodityRoute({
   if (loading) {
     return (
       <div className="flex items-center gap-2 px-3 py-3 text-xs text-hull-400">
-        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-hull-600 border-t-purple-400 motion-reduce:animate-none" />
+        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-hull-600 border-t-brand-400 motion-reduce:animate-none" />
         Loading terminal prices…
       </div>
     )

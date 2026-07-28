@@ -1,5 +1,36 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
 
+/**
+ * Console section rule: a short accent stroke, a monospace label, and a
+ * hairline running to the edge. Repeating this one shape is what makes a page
+ * scan as a single instrument panel rather than a stack of unrelated cards.
+ *
+ * `live` marks a band whose data moves on its own.
+ */
+export function SectionLabel({ children, live }: { children: string; live?: boolean }) {
+  return (
+    <div className="mb-4 flex items-center gap-3">
+      <span
+        aria-hidden
+        className={`h-px w-8 bg-gradient-to-r to-transparent ${
+          live ? 'from-accent-400' : 'from-brand-500'
+        }`}
+      />
+      <h2 className="font-mono text-label uppercase text-hull-400">{children}</h2>
+      {live && (
+        <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-accent-300">
+          <span
+            aria-hidden
+            className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-400 motion-reduce:animate-none"
+          />
+          Live
+        </span>
+      )}
+      <span aria-hidden className="h-px flex-1 bg-line-subtle/70" />
+    </div>
+  )
+}
+
 export function Card({
   title,
   icon,
@@ -15,7 +46,7 @@ export function Card({
 }) {
   return (
     <section
-      className={`group relative overflow-hidden rounded-2xl border border-hull-800/80 bg-hull-900/60 p-5 shadow-xl shadow-black/30 backdrop-blur transition duration-300 hover:border-hull-700/80 hover:shadow-2xl hover:shadow-brand-950/20 sm:p-6 lg:p-7 ${className}`}
+      className={`group relative overflow-hidden rounded-card border border-line-subtle/80 bg-hull-900/60 p-5 shadow-card backdrop-blur transition-colors duration-ui ease-ui hover:border-line/80 sm:p-6 lg:p-7 ${className}`}
     >
       {/* Subtle top edge highlight */}
       <span
@@ -23,17 +54,16 @@ export function Card({
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/40 to-transparent opacity-60"
       />
       {title && (
-        <header className="mb-4 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            {icon && (
-              <span className="grid h-8 w-8 place-items-center rounded-lg border border-hull-700/70 bg-hull-800/60 text-base">
-                {icon}
-              </span>
-            )}
-            <h2 className="font-display text-lg font-semibold tracking-wide text-hull-100">
-              {title}
-            </h2>
-          </div>
+        <header className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+          {icon && (
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-control border border-line/70 bg-hull-800/60 text-base">
+              {icon}
+            </span>
+          )}
+          <h2 className="font-display text-lg font-semibold tracking-wide text-hull-100">
+            {title}
+          </h2>
+          <span aria-hidden className="hidden h-px flex-1 bg-line-subtle/70 sm:block" />
           {action && <div className="flex items-center gap-2">{action}</div>}
         </header>
       )}
@@ -51,7 +81,7 @@ export function Button({
   variant?: 'primary' | 'ghost' | 'danger'
 }) {
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100'
+    'inline-flex items-center justify-center gap-2 rounded-control px-4 py-2 text-sm font-medium transition duration-snap ease-ui focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-hull-950 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100'
   const variants: Record<string, string> = {
     primary:
       'bg-gradient-to-r from-blue-600 to-brand-600 text-white shadow-lg shadow-brand-900/30 hover:from-blue-500 hover:to-brand-500 hover:shadow-brand-800/40 focus:ring-brand-500',
@@ -74,11 +104,11 @@ export function Field({
 }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
+      <span className="mb-1 block font-mono text-label uppercase text-hull-400">
         {label}
       </span>
       <input
-        className="w-full rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 placeholder-hull-500 transition focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        className="w-full rounded-control border border-line bg-hull-950/60 px-3 py-2 text-sm text-hull-100 placeholder-hull-500 transition duration-snap ease-ui focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         {...props}
       />
       {hint && <span className="mt-1 block text-xs text-hull-500">{hint}</span>}

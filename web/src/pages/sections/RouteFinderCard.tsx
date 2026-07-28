@@ -322,7 +322,7 @@ export default function RouteFinderCard() {
 
       {loading && (
         <div className="mb-3 flex items-center gap-2 rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-2.5 text-xs text-hull-400">
-          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-hull-600 border-t-purple-400" />
+          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-hull-600 border-t-brand-400" />
           {progress
             ? `Scanning ${progress.scanning}… ${progress.done}/${progress.total}`
             : 'Loading commodity list…'}
