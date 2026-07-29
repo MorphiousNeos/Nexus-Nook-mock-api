@@ -59,13 +59,33 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true
+
+    // Restoring a session hits the API, and the API sleeps when idle — a cold
+    // start can take a minute. Gating the whole UI on that meant a visitor sat
+    // on the boot screen the entire time, and if the request never settled the
+    // app never rendered at all.
+    //
+    // So the request is no longer allowed to hold the app hostage: after a
+    // short grace period we render regardless. The lookup keeps going, and if
+    // a session does come back the landing page redirects into it, so a
+    // signed-in arrival lands where they expect either way.
+    const grace = setTimeout(() => {
+      if (active) setReady(true)
+    }, 2500)
+
     store
       .getSession()
       .then((s) => active && setState(s))
       .catch(() => active && setState(null))
-      .finally(() => active && setReady(true))
+      .finally(() => {
+        if (!active) return
+        clearTimeout(grace)
+        setReady(true)
+      })
+
     return () => {
       active = false
+      clearTimeout(grace)
     }
   }, [store])
 
