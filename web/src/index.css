@@ -418,6 +418,22 @@ body {
     linear-gradient(to bottom, rgba(2, 6, 23, 0.5) 0%, transparent 20%, transparent 68%, rgba(2, 6, 23, 0.72) 100%);
 }
 
+/* Overflow sheet entrance. Duration sits inside the navigation motion budget
+   (150-250ms) and uses the shared decelerating ease. */
+.nn-sheet {
+  animation: nn-sheet-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes nn-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Hero entrance choreography. */
 .nn-rise {
   opacity: 0;
@@ -524,6 +540,9 @@ body {
   .nn-warp,
   .nn-scanlines {
     display: none;
+  }
+  .nn-sheet {
+    animation: none;
   }
   .nn-nebula,
   .nn-float,
