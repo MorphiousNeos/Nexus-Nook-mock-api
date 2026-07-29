@@ -16,10 +16,11 @@ on:
     - cron: '*/10 * * * *'
   workflow_dispatch:
 
-concurrency:
-  group: keepalive
-  cancel-in-progress: true
-
+# Deliberately no `cancel-in-progress`. GitHub delays scheduled runs under
+# load, so ticks bunch up — and with cancellation on, each queued run killed
+# the one before it and the API was never actually pinged. Every run of this
+# workflow was landing as "cancelled". A ping is short and idempotent, so
+# overlapping runs are harmless.
 permissions: {}
 
 jobs:
