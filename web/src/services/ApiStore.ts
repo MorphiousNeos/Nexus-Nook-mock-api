@@ -1,3 +1,5 @@
+import { isSafeToWrite, migrateAppData } from './migrate'
+import { SCHEMA_VERSION } from './types'
 import type {
   AppState,
   AuthInput,
@@ -92,6 +94,7 @@ export class ApiStore implements Store {
   // --- gameData blob helpers (fleet/inventory/profile extras) ---
 
   private cache(): {
+    schemaVersion?: number
     fleet: Ship[]
     inventory: InventoryItem[]
     blueprints: BlueprintEntry[]
@@ -103,7 +106,7 @@ export class ApiStore implements Store {
     try {
       const raw = localStorage.getItem(CACHE_KEY)
       if (raw) {
-        const parsed = JSON.parse(raw)
+        const parsed = migrateAppData(JSON.parse(raw))
         if (!Array.isArray(parsed.blueprints)) parsed.blueprints = []
         if (!Array.isArray(parsed.hauling)) parsed.hauling = []
         if (!Array.isArray(parsed.opsSessions)) parsed.opsSessions = []
@@ -113,10 +116,14 @@ export class ApiStore implements Store {
     } catch {
       /* ignore */
     }
-    return { fleet: [], inventory: [], blueprints: [], hauling: [], opsSessions: [], loadouts: [], rsiHandle: '' }
+    return { schemaVersion: SCHEMA_VERSION, fleet: [], inventory: [], blueprints: [], hauling: [], opsSessions: [], loadouts: [], rsiHandle: '' }
   }
 
+  /** Highest schema version this tab has seen, to catch a stale writeback. */
+  private lastSeenVersion = SCHEMA_VERSION
+
   private async saveBlob(blob: {
+    schemaVersion?: number
     fleet: Ship[]
     inventory: InventoryItem[]
     blueprints: BlueprintEntry[]
@@ -125,14 +132,23 @@ export class ApiStore implements Store {
     loadouts: Loadout[]
     rsiHandle: string
   }): Promise<void> {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(blob))
+    const versioned = { ...blob, schemaVersion: SCHEMA_VERSION }
+    // A tab opened before a deploy still holds the old shape in memory; without
+    // this it could save that over an already-migrated blob.
+    if (!isSafeToWrite(versioned.schemaVersion, this.lastSeenVersion)) {
+      throw new Error(
+        'This tab is running an older version of Nexus Nook. Reload before saving.',
+      )
+    }
+    localStorage.setItem(CACHE_KEY, JSON.stringify(versioned))
     await this.request('/api/user/save', {
       method: 'POST',
-      body: JSON.stringify({ gameData: blob }),
+      body: JSON.stringify({ gameData: versioned }),
     })
   }
 
   private async loadBlob(): Promise<{
+    schemaVersion: number
     fleet: Ship[]
     inventory: InventoryItem[]
     blueprints: BlueprintEntry[]
@@ -142,8 +158,10 @@ export class ApiStore implements Store {
     rsiHandle: string
   }> {
     const data = await this.request<{ gameData: any }>('/api/user/load')
-    const blob = data.gameData ?? {}
+    const blob = migrateAppData(data.gameData ?? {})
+    this.lastSeenVersion = blob.schemaVersion
     const normalized = {
+      schemaVersion: blob.schemaVersion,
       fleet: Array.isArray(blob.fleet) ? blob.fleet : [],
       inventory: Array.isArray(blob.inventory) ? blob.inventory : [],
       blueprints: Array.isArray(blob.blueprints) ? blob.blueprints : [],
@@ -163,6 +181,7 @@ export class ApiStore implements Store {
   }): Promise<AppState> {
     const blob = await this.loadBlob()
     return {
+      schemaVersion: blob.schemaVersion,
       profile: {
         id: user.id,
         displayName: user.username,

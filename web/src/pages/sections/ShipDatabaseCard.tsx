@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useSession } from '../../SessionContext'
+import { newShipDefaults } from '../../services/shipDefaults'
 import { Badge, Button, Card, EmptyState, Field, Skeleton } from '../../components/ui'
 import { getVehicles, UexError, type Vehicle } from '../../services/uex'
 import { slugify, type WikiVehicleDetail } from '../../services/scwiki'
@@ -270,9 +271,11 @@ export default function ShipDatabaseCard() {
     setAddingKey(key)
     try {
       await addShip({
+        ...newShipDefaults(),
         name: v.name,
+        model: v.name,
         manufacturer: v.manufacturer ?? '',
-        type: describeVehicle(v),
+        catalogId: v.id !== undefined ? String(v.id) : undefined,
       })
       setAddedKey(key)
     } finally {

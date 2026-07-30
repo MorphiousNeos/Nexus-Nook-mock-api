@@ -10,12 +10,71 @@ export interface UserProfile {
   rsiHandle: string
 }
 
+/**
+ * Fleet state — the player's relationship to the hull.
+ *
+ * `loaner` is a hull CIG lends while a pledge is not yet flyable, so it is
+ * genuinely neither owned nor wished for. Lending a ship *to an org* is a
+ * different concept and belongs with the org assignment work.
+ */
+export type FleetState = 'owned' | 'wishlist' | 'loaner'
+
+/** Whether the ship can be flown right now. Meaningless while on a wishlist. */
+export type Availability = 'ready' | 'stored' | 'claiming' | 'maintenance'
+
+/** What the player has set the ship up to do. Intent, not capability. */
+export type ConfigurationRole =
+  | 'cargo'
+  | 'combat'
+  | 'mining'
+  | 'medical'
+  | 'exploration'
+  | 'salvage'
+  | 'racing'
+  | 'multi-role'
+
+/** How the player came by the hull. Previously free text inside `notes`. */
+export type Acquisition = 'pledge' | 'in-game' | 'loaner' | 'gift' | 'unknown'
+
+/**
+ * Insurance is two facts, not one. Only a timed policy has an expiry, which is
+ * what lets reminders exist without pretending LTI lapses.
+ */
+export type Insurance =
+  | { type: 'lti' }
+  | { type: 'timed'; expiresAt: string }
+  | { type: 'none' }
+
+/**
+ * A ship in the player's fleet.
+ *
+ * Every field here answers "would losing this force the player to type it
+ * again?" Readiness, loadout completeness and component coverage deliberately
+ * do not appear: they are derived from the loadout against the ship, so a
+ * stored copy could only ever drift out of agreement with reality.
+ */
 export interface Ship {
   id: string
+  /** Catalog vehicle id, linking to specs and imagery without name lookups. */
+  catalogId?: string
+  /** What the player calls it — "Old Reliable". */
   name: string
+  /** What it actually is — "Cutlass Black". Drives specs and imagery. */
+  model: string
   manufacturer: string
-  type: string
+
+  state: FleetState
+  /** Ignored while `state` is 'wishlist'. */
+  availability: Availability
+  configurationRole: ConfigurationRole
+  acquisition: Acquisition
+  insurance: Insurance
+
+  isPrimary: boolean
+  tags: string[]
+  /** The player's own text again, now that acquisition has its own field. */
   notes?: string
+  lastFlownAt?: string
 }
 
 export interface InventoryItem {
@@ -64,7 +123,14 @@ export interface LoadoutComponent {
 export interface Loadout {
   id: string
   name: string
-  ship: string
+  /** The ship this build belongs to. Was a name, which detached on rename. */
+  shipId: string
+  /**
+   * The ship name as it read when this loadout was migrated from the
+   * name-based link. Kept only so an ambiguous or failed match stays
+   * recoverable instead of silently vanishing; unused once `shipId` resolves.
+   */
+  shipNameAtMigration?: string
   /** Saved via in-game Item Recovery (Alpha 4.9+). */
   savedInGame: boolean
   components: LoadoutComponent[]
@@ -141,8 +207,15 @@ export interface PlatformStatus {
   category?: string
 }
 
+/**
+ * Shape of the persisted blob. Bump when a record is reshaped, and add a step
+ * to migrateAppData. Absent means version 1.
+ */
+export const SCHEMA_VERSION = 2
+
 /** Everything the UI needs to render once a session is established. */
 export interface AppState {
+  schemaVersion: number
   profile: UserProfile
   fleet: Ship[]
   inventory: InventoryItem[]

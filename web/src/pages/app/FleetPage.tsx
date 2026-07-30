@@ -25,9 +25,10 @@ export default function FleetPage() {
     const manufacturers = new Set(
       fleet.map((s) => s.manufacturer?.trim()).filter(Boolean) as string[],
     )
-    // A ship counts as configured when a loadout names it.
+    // A ship counts as configured when a loadout points at its id. This was a
+    // name comparison, which detached on rename and double-counted duplicates.
     const configured = fleet.filter((ship) =>
-      loadouts.some((lo) => lo.ship.trim().toLowerCase() === ship.name.trim().toLowerCase()),
+      loadouts.some((lo) => lo.shipId === ship.id),
     ).length
     const storedInGame = loadouts.filter((lo) => lo.savedInGame).length
 
