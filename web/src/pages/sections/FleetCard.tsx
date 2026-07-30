@@ -338,7 +338,7 @@ export default function FleetCard() {
                   )}
                 </div>
                 <Button
-                  variant="danger"
+                  variant="quiet"
                   onClick={() => removeShip(ship.id)}
                   className="shrink-0"
                 >

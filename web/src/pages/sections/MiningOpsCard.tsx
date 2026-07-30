@@ -210,7 +210,7 @@ function SessionDetail({
                 {detail.closed ? 'Reopen session' : 'Close session'}
               </Button>
               <Button
-                variant="danger"
+                variant="quiet"
                 onClick={() => {
                   if (window.confirm(`Delete "${detail.name}"? This cannot be undone.`)) {
                     void run(() => deleteSharedOps(detail.id), 'Could not delete.').then(

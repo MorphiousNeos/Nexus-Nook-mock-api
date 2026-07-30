@@ -108,7 +108,7 @@ export default function ProfileCard() {
           </p>
           {deleteError && <p className="mt-2 text-xs text-caution-300">{deleteError}</p>}
           <Button
-            variant="danger"
+            variant="quiet"
             className="mt-3"
             onClick={handleDelete}
             disabled={deleteBusy}
