@@ -422,7 +422,7 @@ export default function InventoryCard() {
               </p>
               {item.notes && <p className="mt-1 text-xs text-hull-500">{item.notes}</p>}
             </div>
-            <Button variant="danger" onClick={() => removeItem(item.id)} className="shrink-0">
+            <Button variant="quiet" onClick={() => removeItem(item.id)} className="shrink-0">
               Remove
             </Button>
           </li>

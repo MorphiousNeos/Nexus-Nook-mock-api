@@ -384,7 +384,7 @@ export default function HaulingCard() {
                     {c.notes && <p className="mt-1 text-xs text-hull-500">{c.notes}</p>}
                   </div>
                   <Button
-                    variant="danger"
+                    variant="quiet"
                     className="shrink-0"
                     onClick={() => removeHauling(c.id)}
                   >
@@ -433,7 +433,7 @@ export default function HaulingCard() {
                     <Button variant="ghost" onClick={() => reopen(c.id)}>
                       Reopen
                     </Button>
-                    <Button variant="danger" onClick={() => removeHauling(c.id)}>
+                    <Button variant="quiet" onClick={() => removeHauling(c.id)}>
                       Remove
                     </Button>
                   </div>

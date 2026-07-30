@@ -641,7 +641,7 @@ export default function BlueprintCard() {
                         ))}
                       </select>
                       <Button
-                        variant="danger"
+                        variant="quiet"
                         onClick={() => removeBlueprint(bp.id)}
                         className="text-xs"
                       >

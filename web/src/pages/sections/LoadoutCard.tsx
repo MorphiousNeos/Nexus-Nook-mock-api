@@ -257,7 +257,7 @@ export default function LoadoutCard() {
                   </p>
                 </button>
                 <Button
-                  variant="danger"
+                  variant="quiet"
                   className="shrink-0"
                   onClick={() => removeLoadout(lo.id)}
                 >

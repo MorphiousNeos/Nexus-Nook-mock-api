@@ -76,7 +76,7 @@ export function Button({
   className = '',
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'ghost' | 'danger'
+  variant?: 'primary' | 'ghost' | 'danger' | 'quiet'
 }) {
   const base =
     'inline-flex items-center justify-center gap-2 rounded-control px-4 py-2 text-sm font-medium transition duration-snap ease-ui focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-hull-950 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100'
@@ -89,6 +89,12 @@ export function Button({
       'border border-line bg-hull-800 text-hull-200 hover:bg-hull-700 hover:border-line-strong focus:ring-hull-500',
     danger:
       'border border-danger-900/60 bg-danger-950/40 text-danger-300 hover:bg-danger-900/40 focus:ring-danger-600',
+    // Administrative actions — remove, clear, reset. These sat in bordered red
+    // panels beside every row, which made deleting a ship look more important
+    // than the ship. Now they are plain text that only becomes destructive on
+    // approach: reachable, never competing.
+    quiet:
+      'text-hull-500 hover:text-danger-300 hover:bg-danger-950/30 focus:ring-danger-600',
   }
   return (
     <button className={`${base} ${variants[variant]} ${className}`} {...props}>
