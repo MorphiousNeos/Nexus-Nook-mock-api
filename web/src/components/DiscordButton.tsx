@@ -14,7 +14,9 @@ export default function DiscordButton({ className = '' }: { className?: string }
       onClick={(e) => {
         if (!enabled) e.preventDefault()
       }}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg bg-[#5865F2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#4752c4] ${
+      // Discord's own brand colour, so it is deliberately not a token — the mark
+      // has to match theirs, not ours. The radius is still ours.
+      className={`inline-flex items-center justify-center gap-2 rounded-control bg-[#5865F2] px-4 py-2 text-sm font-semibold text-white transition duration-snap ease-ui hover:bg-[#4752c4] ${
         enabled ? '' : 'cursor-not-allowed opacity-70'
       } ${className}`}
     >
