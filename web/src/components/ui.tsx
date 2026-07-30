@@ -46,13 +46,11 @@ export function Card({
 }) {
   return (
     <section
-      className={`group relative overflow-hidden rounded-card border border-line-subtle/80 bg-hull-900/60 p-5 shadow-card backdrop-blur transition-colors duration-ui ease-ui hover:border-line/80 sm:p-6 lg:p-7 ${className}`}
+      // A card is a plane resting above the page, so elevation carries it and
+      // the edge only needs to be a hairline. The decorative top highlight is
+      // gone: repeated on every card it read as ornament, not structure.
+      className={`group relative overflow-hidden rounded-card border border-line-subtle bg-hull-900 p-5 shadow-card transition-colors duration-ui ease-ui hover:border-line sm:p-6 lg:p-7 ${className}`}
     >
-      {/* Subtle top edge highlight */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/40 to-transparent opacity-60"
-      />
       {title && (
         <header className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
           {icon && (
@@ -83,10 +81,12 @@ export function Button({
   const base =
     'inline-flex items-center justify-center gap-2 rounded-control px-4 py-2 text-sm font-medium transition duration-snap ease-ui focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-hull-950 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100'
   const variants: Record<string, string> = {
+    // Flat fills. A primary action should read as a solid control, not a
+    // painted one — the gradient here was the loudest thing on most screens.
     primary:
-      'bg-gradient-to-r from-blue-600 to-brand-600 text-white shadow-lg shadow-brand-900/30 hover:from-blue-500 hover:to-brand-500 hover:shadow-brand-800/40 focus:ring-brand-500',
+      'bg-brand-600 text-white hover:bg-brand-500 focus:ring-brand-500',
     ghost:
-      'border border-hull-700 bg-hull-800/50 text-hull-200 hover:bg-hull-700/60 hover:border-hull-600 focus:ring-hull-500',
+      'border border-line bg-hull-800 text-hull-200 hover:bg-hull-700 hover:border-line-strong focus:ring-hull-500',
     danger:
       'border border-danger-900/60 bg-danger-950/40 text-danger-300 hover:bg-danger-900/40 focus:ring-danger-600',
   }
@@ -164,11 +164,11 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-hull-700/70 bg-hull-950/40 px-4 py-8 text-center text-sm text-hull-500 sm:py-10">
+    <div className="flex flex-col items-center gap-2 rounded-card border border-dashed border-line bg-hull-950/40 px-4 py-10 text-center text-sm text-hull-400 sm:py-12">
       {icon && (
         <span
           aria-hidden
-          className="nn-empty-glow mb-1 grid h-16 w-16 place-items-center text-3xl opacity-90 sm:h-20 sm:w-20 sm:text-4xl"
+          className="mb-1 grid h-14 w-14 place-items-center text-3xl opacity-70 sm:h-16 sm:w-16"
         >
           {icon}
         </span>

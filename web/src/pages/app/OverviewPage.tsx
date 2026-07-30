@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useSession } from '../../SessionContext'
 import { Badge, SectionLabel, Skeleton } from '../../components/ui'
+import PageContainer from '../../components/PageContainer'
 import DiscordButton from '../../components/DiscordButton'
 import { NAV_ITEMS } from '../../nav'
 import type { OpsActivity, ServerStatus, ServerStatusLevel } from '../../services/store'
@@ -530,7 +531,7 @@ export default function OverviewPage() {
   )
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10 lg:max-w-6xl lg:px-8 lg:py-12">
+    <PageContainer>
       <ExecHangarStrip />
 
       <header className="mb-8 mt-8">
@@ -729,6 +730,6 @@ export default function OverviewPage() {
         </div>
         <DiscordButton className="shrink-0" />
       </section>
-    </div>
+    </PageContainer>
   )
 }

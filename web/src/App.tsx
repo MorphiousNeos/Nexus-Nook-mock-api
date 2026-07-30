@@ -23,7 +23,7 @@ function Layout() {
 
   if (!ready) {
     return (
-      <div className="starfield flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col bg-hull-950">
         <div className="flex flex-1 items-center justify-center text-hull-400">
           <span className="animate-pulse font-display tracking-widest">
             INITIALIZING NEXUS LINK…
@@ -34,8 +34,11 @@ function Layout() {
     )
   }
 
+  // The landing page is the product's front door and keeps its scene. The
+  // authenticated app is a working console and sits on a flat surface: depth
+  // there comes from layered planes, not from a decorated backdrop.
   return (
-    <div className="starfield flex min-h-screen flex-col">
+    <div className={`flex min-h-screen flex-col ${state ? 'bg-hull-950' : 'starfield'}`}>
       <div className="flex-1">
         {!state ? (
           // Logged out: always the Landing page; any deep link falls through to it.

@@ -6,6 +6,9 @@ import DiscordButton from './DiscordButton'
 import NavRail from './nav/NavRail'
 import NavBottomBar from './nav/NavBottomBar'
 import NavDrawer from './nav/NavDrawer'
+import { NAV_ITEMS } from '../nav'
+import { DISCORD_INVITE } from '../services/store'
+import { isActivePath } from './nav/navConfig'
 
 /**
  * Application shell.
@@ -38,7 +41,7 @@ function Brand({ onClick }: { onClick?: () => void }) {
   )
 }
 
-/** Account block: identity, then the two account-level actions. */
+/** Account block, stacked. Used inside the mobile overflow sheet. */
 function AccountPanel() {
   const { isDemo, state, logout } = useSession()
   const profile = state?.profile
@@ -67,10 +70,59 @@ function AccountPanel() {
   )
 }
 
+/**
+ * Desktop top bar.
+ *
+ * A single quiet strip across the content column: where you are on the left,
+ * who you are on the right. It exists so account controls have somewhere to
+ * belong — without it they floated at the end of the page, anchored to
+ * nothing.
+ */
+function TopBar({ section }: { section: string }) {
+  const { isDemo, state, logout } = useSession()
+  const profile = state?.profile
+  return (
+    <header className="sticky top-0 z-30 hidden items-center gap-4 border-b border-line-subtle bg-hull-925/95 px-10 py-3 backdrop-blur lg:flex">
+      <span className="font-mono text-label uppercase text-hull-400">{section}</span>
+      <span aria-hidden className="h-4 w-px bg-line" />
+      <span className="min-w-0 flex-1" />
+      {isDemo && (
+        <Badge tone="amber" dot>
+          Demo mode
+        </Badge>
+      )}
+      {profile && (
+        <span className="max-w-[14rem] truncate text-sm text-hull-300">
+          {profile.displayName}
+        </span>
+      )}
+      {/* A filled brand button was the loudest thing in the frame. In the top
+          bar the invite is a quiet link; it keeps its full treatment on the
+          landing page and in the mobile sheet, where it is the actual call to
+          action. */}
+      {DISCORD_INVITE && (
+        <a
+          href={DISCORD_INVITE}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="rounded-control px-2 py-1 text-xs text-hull-400 transition-colors duration-ui ease-ui hover:text-hull-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-hull-925"
+        >
+          Discord
+        </a>
+      )}
+      <Button variant="ghost" onClick={logout} className="px-3 py-1.5 text-xs">
+        Sign out
+      </Button>
+    </header>
+  )
+}
+
 export default function AppShell() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const location = useLocation()
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
+  const sectionLabel =
+    NAV_ITEMS.find((item) => isActivePath(location.pathname, item.to))?.label ?? 'Overview'
 
   // Close the overflow sheet whenever the route changes.
   useEffect(() => {
@@ -98,7 +150,7 @@ export default function AppShell() {
   return (
     <div className="mx-auto flex w-full max-w-7xl 2xl:max-w-[1400px]">
       {/* Desktop rail */}
-      <aside className="sticky top-0 hidden h-screen w-[6.5rem] shrink-0 flex-col border-r border-line-subtle bg-hull-950 py-4 lg:flex xl:w-28">
+      <aside className="sticky top-0 hidden h-screen w-[6.5rem] shrink-0 flex-col border-r border-line-subtle bg-hull-950 py-5 lg:flex xl:w-28">
         <div className="px-2 pb-4">
           <NavLink
             to="/overview"
@@ -114,25 +166,19 @@ export default function AppShell() {
       </aside>
 
       {/* Main column */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col bg-hull-950 lg:bg-hull-925">
         {/* Mobile header. Navigation lives at the bottom, so this carries
             identity and the account panel only. */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line-subtle bg-hull-950 px-4 py-3 lg:hidden">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line-subtle bg-hull-950 px-5 py-3 lg:hidden">
           <Brand />
-          <Badge tone="slate">{location.pathname.replace('/', '') || 'overview'}</Badge>
+          <Badge tone="slate">{sectionLabel}</Badge>
         </header>
+
+        <TopBar section={sectionLabel} />
 
         <main className="min-h-[60vh] flex-1 pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:pb-0">
           <Outlet />
         </main>
-
-        {/* Account actions sit at the end of the desktop column; on mobile they
-            live in the overflow sheet, where the rest of the chrome is. */}
-        <div className="hidden px-6 pb-6 lg:block">
-          <div className="ml-auto w-64">
-            <AccountPanel />
-          </div>
-        </div>
 
         <NavBottomBar
           pathname={location.pathname}
