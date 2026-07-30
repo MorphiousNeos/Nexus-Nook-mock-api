@@ -1,3 +1,5 @@
+import { migrateAppData } from './migrate'
+import { SCHEMA_VERSION } from './types'
 import type {
   AppState,
   AuthInput,
@@ -24,12 +26,15 @@ function loadRaw(): AppState | null {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as AppState
-    // Normalize fields added after a session was first stored.
+    // Normalize lists added after a session was first stored, then bring the
+    // whole blob up to the current schema before anything else sees it.
     if (!Array.isArray(parsed.blueprints)) parsed.blueprints = []
     if (!Array.isArray(parsed.hauling)) parsed.hauling = []
     if (!Array.isArray(parsed.opsSessions)) parsed.opsSessions = []
     if (!Array.isArray(parsed.loadouts)) parsed.loadouts = []
-    return parsed
+    const migrated = migrateAppData(parsed) as unknown as AppState
+    if (migrated.schemaVersion !== parsed.schemaVersion) persist(migrated)
+    return migrated
   } catch {
     return null
   }
@@ -63,24 +68,59 @@ function seedFleet(): Ship[] {
   return [
     {
       id: uid(),
-      name: 'Drake Cutlass Black (sample)',
+      name: 'Old Reliable',
+      model: 'Cutlass Black',
       manufacturer: 'Drake Interplanetary',
-      type: '46 SCU · Crew 2',
-      notes: 'Sample data · Acquired: Pledge',
+      state: 'owned',
+      availability: 'ready',
+      configurationRole: 'salvage',
+      acquisition: 'pledge',
+      insurance: { type: 'lti' },
+      isPrimary: true,
+      tags: ['sample'],
+      notes: 'Sample data · the one that always comes back.',
     },
     {
       id: uid(),
-      name: 'MISC Freelancer MAX (sample)',
+      name: 'Freelancer MAX',
+      model: 'Freelancer MAX',
       manufacturer: 'Musashi Industrial & Starflight Concern',
-      type: '120 SCU · Crew 2',
-      notes: 'Sample data · Acquired: Bought in-game (aUEC)',
+      state: 'owned',
+      availability: 'stored',
+      configurationRole: 'cargo',
+      acquisition: 'in-game',
+      insurance: { type: 'timed', expiresAt: '2027-01-15' },
+      isPrimary: false,
+      tags: ['sample'],
+      notes: 'Sample data · the bulk hauler.',
     },
     {
       id: uid(),
-      name: 'RSI Aurora MR (sample)',
+      name: 'Aurora MR',
+      model: 'Aurora MR',
       manufacturer: 'Roberts Space Industries',
-      type: '6 SCU · Crew 1',
-      notes: 'Sample data · the starter that never gets sold',
+      state: 'owned',
+      availability: 'claiming',
+      configurationRole: 'multi-role',
+      acquisition: 'pledge',
+      insurance: { type: 'lti' },
+      isPrimary: false,
+      tags: ['sample'],
+      notes: 'Sample data · the starter that never gets sold.',
+    },
+    {
+      id: uid(),
+      name: 'Vulture',
+      model: 'Vulture',
+      manufacturer: 'Drake Interplanetary',
+      state: 'wishlist',
+      availability: 'stored',
+      configurationRole: 'salvage',
+      acquisition: 'unknown',
+      insurance: { type: 'none' },
+      isPrimary: false,
+      tags: ['sample'],
+      notes: 'Sample data · planned next purchase.',
     },
   ]
 }
@@ -190,12 +230,12 @@ function seedBlueprints(): BlueprintEntry[] {
   ]
 }
 
-function seedLoadouts(): Loadout[] {
+function seedLoadouts(shipId: string): Loadout[] {
   return [
     {
       id: uid(),
       name: 'Cutlass — salvage kit (sample)',
-      ship: 'Drake Cutlass Black (sample)',
+      shipId,
       savedInGame: true,
       notes: 'Sample loadout · what to re-buy after a wipe.',
       components: [
@@ -236,7 +276,9 @@ export class LocalStore implements Store {
       return existing
     }
 
+    const fleet = seedFleet()
     const state: AppState = {
+      schemaVersion: SCHEMA_VERSION,
       profile: {
         id: uid(),
         displayName: input.displayName.trim(),
@@ -245,12 +287,14 @@ export class LocalStore implements Store {
       },
       // First creation only — a returning profile is handled above and keeps
       // whatever the user already has, seeded or not.
-      fleet: seedFleet(),
+      fleet,
       inventory: seedInventory(),
       blueprints: seedBlueprints(),
       hauling: seedHauling(),
       opsSessions: seedOpsSessions(),
-      loadouts: seedLoadouts(),
+      // The sample build attaches to the sample Cutlass by id, the same way a
+      // real one would — seeded data should exercise the real relationship.
+      loadouts: seedLoadouts(fleet[0]?.id ?? ''),
     }
     persist(state)
     return state

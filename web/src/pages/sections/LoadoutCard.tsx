@@ -78,6 +78,17 @@ export default function LoadoutCard() {
 
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
+  /**
+   * Loadouts store a ship id. A build whose ship was deleted, or whose
+   * migration could not resolve an ambiguous name, keeps the name it had so
+   * the player can see what it was attached to rather than losing it.
+   */
+  function shipLabel(lo: Loadout): string {
+    const match = fleet.find((s) => s.id === lo.shipId)
+    if (match) return match.name
+    return lo.shipNameAtMigration ? `${lo.shipNameAtMigration} (unlinked)` : 'Unlinked'
+  }
+
   // Component picker state (per expanded loadout).
   const [categories, setCategories] = useState<ItemCategory[] | null>(null)
   const [catError, setCatError] = useState<string | null>(null)
@@ -136,7 +147,7 @@ export default function LoadoutCard() {
     try {
       await addLoadout({
         name: name.trim(),
-        ship: ship.trim(),
+        shipId: ship,
         savedInGame: false,
         components: [],
       })
@@ -247,7 +258,7 @@ export default function LoadoutCard() {
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium text-hull-100">{lo.name}</p>
-                    <Badge tone="purple">{lo.ship}</Badge>
+                    <Badge tone="purple">{shipLabel(lo)}</Badge>
                     {lo.savedInGame && <Badge tone="green">Saved in game</Badge>}
                   </div>
                   <p className="mt-0.5 text-xs text-hull-500">

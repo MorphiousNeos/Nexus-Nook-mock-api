@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useSession } from '../../SessionContext'
+import { newShipDefaults } from '../../services/shipDefaults'
+import type { Acquisition } from '../../services/types'
 import { Button, Card, EmptyState, Field } from '../../components/ui'
 import { getVehicles, UexError, type Vehicle } from '../../services/uex'
 import type { WikiVehicleDetail } from '../../services/scwiki'
@@ -38,13 +40,13 @@ export default function FleetCard() {
 
   // Picker search + selected acquisition tag.
   const [query, setQuery] = useState('')
-  const [acquired, setAcquired] = useState('')
+  const [acquired, setAcquired] = useState<Acquisition>('unknown')
   const [adding, setAdding] = useState<string | null>(null)
 
   // Manual add fields.
   const [name, setName] = useState('')
   const [manufacturer, setManufacturer] = useState('')
-  const [type, setType] = useState('')
+  const [model, setModel] = useState('')
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -101,10 +103,12 @@ export default function FleetCard() {
     setAdding(key)
     try {
       await addShip({
+        ...newShipDefaults(),
         name: v.name,
+        model: v.name,
         manufacturer: v.manufacturer ?? '',
-        type: describeVehicle(v),
-        notes: acquired ? `Acquired: ${acquired}` : undefined,
+        acquisition: acquired,
+        catalogId: v.id !== undefined ? String(v.id) : undefined,
       })
     } finally {
       setAdding(null)
@@ -117,14 +121,15 @@ export default function FleetCard() {
     setBusy(true)
     try {
       await addShip({
+        ...newShipDefaults(),
         name: name.trim(),
+        model: model.trim() || name.trim(),
         manufacturer: manufacturer.trim(),
-        type: type.trim(),
         notes: notes.trim() || undefined,
       })
       setName('')
       setManufacturer('')
-      setType('')
+      setModel('')
       setNotes('')
       setCustomOpen(false)
     } finally {
@@ -166,7 +171,7 @@ export default function FleetCard() {
               </span>
               <select
                 value={acquired}
-                onChange={(e) => setAcquired(e.target.value)}
+                onChange={(e) => setAcquired(e.target.value as Acquisition)}
                 className="w-full rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 transition focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-48"
               >
                 {ACQUIRED_OPTIONS.map((o) => (
@@ -257,8 +262,8 @@ export default function FleetCard() {
               <Field
                 label="Type"
                 placeholder="Light Fighter"
-                value={type}
-                onChange={(e) => setType(e.target.value)}
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
               />
               <Field
                 label="Notes (optional)"
@@ -328,7 +333,7 @@ export default function FleetCard() {
                     <p className="truncate font-medium text-hull-100">{ship.name}</p>
                   </div>
                   <p className="ml-5 truncate text-xs text-hull-400">
-                    {[ship.manufacturer, ship.type].filter(Boolean).join(' · ') ||
+                    {[ship.model, ship.manufacturer].filter(Boolean).join(' · ') ||
                       'Unspecified'}
                   </p>
                   {ship.notes && (

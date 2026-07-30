@@ -26,7 +26,11 @@ permissions: {}
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Must exceed the worst-case retry budget below (3 x 90s plus two 15s
+    # sleeps is five minutes exactly). When the budget equals the timeout the
+    # runner kills the job mid-loop, and a timeout-killed job is reported as
+    # "cancelled" — which reads like the old concurrency bug but is not one.
+    timeout-minutes: 8
     steps:
       - name: Ping the health endpoint
         env:
