@@ -314,6 +314,20 @@ export class ApiStore implements Store {
     return blob.fleet
   }
 
+  async updateShip(id: string, patch: Partial<Omit<Ship, 'id'>>): Promise<Ship[]> {
+    const blob = this.cache()
+    const idx = blob.fleet.findIndex((x) => x.id === id)
+    if (idx !== -1) {
+      blob.fleet[idx] = { ...blob.fleet[idx], ...patch }
+      // Exactly one hull can be primary, so setting one clears the rest.
+      if (patch.isPrimary) {
+        blob.fleet = blob.fleet.map((x, i) => (i === idx ? x : { ...x, isPrimary: false }))
+      }
+    }
+    await this.saveBlob(blob)
+    return blob.fleet
+  }
+
   async removeShip(id: string): Promise<Ship[]> {
     const blob = this.cache()
     blob.fleet = blob.fleet.filter((x) => x.id !== id)

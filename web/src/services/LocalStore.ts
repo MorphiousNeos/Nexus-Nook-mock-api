@@ -334,6 +334,19 @@ export class LocalStore implements Store {
     return state.fleet
   }
 
+  async updateShip(id: string, patch: Partial<Omit<Ship, 'id'>>): Promise<Ship[]> {
+    const state = this.mutate((s) => {
+      const idx = s.fleet.findIndex((x) => x.id === id)
+      if (idx === -1) return
+      s.fleet[idx] = { ...s.fleet[idx], ...patch }
+      // Exactly one hull can be primary, so setting one clears the rest.
+      if (patch.isPrimary) {
+        s.fleet = s.fleet.map((x, i) => (i === idx ? x : { ...x, isPrimary: false }))
+      }
+    })
+    return state.fleet
+  }
+
   async removeShip(id: string): Promise<Ship[]> {
     const state = this.mutate((s) => {
       s.fleet = s.fleet.filter((x) => x.id !== id)
