@@ -18,8 +18,8 @@ together, generates `JWT_SECRET`, and runs the DB migration automatically.
 1. Create a free account at https://render.com (sign in with GitHub).
 2. Dashboard → **New +** → **Blueprint** → connect this repository.
 3. Render reads `render.yaml` and lists the resources. Click **Apply**.
-4. When the first deploy finishes, open the **nexusnook-api** service and copy its
-   URL (e.g. `https://nexusnook-api.onrender.com`).
+4. When the first deploy finishes, open the **nexus-nook-mock-api** service and copy
+   its URL (e.g. `https://nexus-nook-mock-api.onrender.com`).
 5. Verify: visit `<that URL>/health` — you should see `{"status":"OK",...}`.
 
 Caveats: free web services sleep when idle (first request after idle is slow), and

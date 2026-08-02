@@ -35,7 +35,7 @@ jobs:
       - name: Ping the health endpoint
         env:
           # Overridable so a fork or a moved backend does not need a code edit.
-          API_URL: ${{ vars.API_URL || 'https://nexusnook-api.onrender.com' }}
+          API_URL: ${{ vars.API_URL || 'https://nexus-nook-mock-api.onrender.com' }}
         run: |
           # A sleeping instance can take ~60s to answer, so allow a generous
           # timeout and retry before giving up.
