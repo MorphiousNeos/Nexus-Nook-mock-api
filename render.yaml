@@ -9,8 +9,8 @@
 #      resources it will create. Click "Apply".
 #   4. Wait for the first deploy. Render creates the DB + Redis; the service
 #      runs the migration at startup, then starts the API.
-#   5. Open the "nexusnook-api" service and copy its URL
-#      (e.g. https://nexusnook-api.onrender.com). Send that URL to wire the
+#   5. Open the "nexus-nook-mock-api" service and copy its URL
+#      (e.g. https://nexus-nook-mock-api.onrender.com). Send that URL to wire the
 #      web/native clients to it for real sign-in.
 #
 # Notes:
@@ -33,7 +33,12 @@ services:
     ipAllowList: [] # internal-only access
 
   - type: web
-    name: nexusnook-api
+    # Must match the live service's name: Render derives the public hostname
+    # from it, and every client below is wired to that hostname. The running
+    # service was created by hand rather than from this Blueprint, so it took
+    # its name from the repository — this file follows reality, not the other
+    # way round.
+    name: nexus-nook-mock-api
     runtime: node
     plan: free
     rootDir: backend
@@ -64,7 +69,7 @@ services:
         value: https://morphiousneos.github.io/Nexus-Nook-mock-api
       # Discord OAuth ("Sign in with Discord"). Create an application at
       # https://discord.com/developers/applications, add redirect URI
-      # https://nexusnook-api.onrender.com/api/auth/discord/callback, then
+      # https://nexus-nook-mock-api.onrender.com/api/auth/discord/callback, then
       # paste the client ID + secret in the Render dashboard.
       - key: DISCORD_CLIENT_ID
         sync: false

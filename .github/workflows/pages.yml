@@ -35,7 +35,7 @@ jobs:
         env:
           # Point the deployed web app at the live backend so it uses real
           # accounts/sync (ApiStore) instead of local demo mode.
-          VITE_API_URL: https://nexusnook-api.onrender.com
+          VITE_API_URL: https://nexus-nook-mock-api.onrender.com
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
