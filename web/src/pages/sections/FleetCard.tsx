@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useSession } from '../../SessionContext'
 import { newShipDefaults } from '../../services/shipDefaults'
-import type { Acquisition } from '../../services/types'
-import { Button, Card, EmptyState, Field } from '../../components/ui'
+import { AVAILABILITY_LABEL, ROLE_LABEL } from '../../services/fleetInsights'
+import type { Acquisition, Availability } from '../../services/types'
+import { Badge, Button, Card, EmptyState, Field } from '../../components/ui'
 import { getVehicles, UexError, type Vehicle } from '../../services/uex'
 import type { WikiVehicleDetail } from '../../services/scwiki'
 import ShipDetail from './ShipDetail'
@@ -25,7 +26,7 @@ function describeVehicle(v: Vehicle): string {
 }
 
 export default function FleetCard() {
-  const { state, addShip, removeShip } = useSession()
+  const { state, addShip, updateShip, removeShip } = useSession()
   const fleet = state!.fleet
 
   // Picker open/closed + custom (manual) fallback toggle.
@@ -321,7 +322,7 @@ export default function FleetCard() {
                   onKeyDown={onKey}
                   className="min-w-0 flex-1 cursor-pointer rounded outline-none transition focus-visible:ring-2 focus-visible:ring-brand-500"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span
                       aria-hidden
                       className={`text-xs text-hull-500 transition-transform ${
@@ -331,10 +332,21 @@ export default function FleetCard() {
                       ▶
                     </span>
                     <p className="truncate font-medium text-hull-100">{ship.name}</p>
+                    {ship.isPrimary && <Badge tone="purple">Primary</Badge>}
+                    {ship.state === 'wishlist' && <Badge tone="slate">Wishlist</Badge>}
+                    {ship.state === 'loaner' && <Badge tone="slate">Loaner</Badge>}
                   </div>
+                  {/* The player's name and the actual hull are different facts,
+                      so the model stays visible even when they renamed it. */}
                   <p className="ml-5 truncate text-xs text-hull-400">
                     {[ship.model, ship.manufacturer].filter(Boolean).join(' · ') ||
                       'Unspecified'}
+                    {ship.state !== 'wishlist' && (
+                      <span className="text-hull-500">
+                        {' · '}
+                        {ROLE_LABEL[ship.configurationRole]}
+                      </span>
+                    )}
                   </p>
                   {ship.notes && (
                     <p className="ml-5 mt-1 truncate text-xs text-hull-500">
@@ -342,6 +354,26 @@ export default function FleetCard() {
                     </p>
                   )}
                 </div>
+                {ship.state !== 'wishlist' && (
+                  <label className="shrink-0">
+                    <span className="sr-only">Availability for {ship.name}</span>
+                    <select
+                      value={ship.availability}
+                      onChange={(e) =>
+                        updateShip(ship.id, {
+                          availability: e.target.value as Availability,
+                        })
+                      }
+                      className="rounded-control border border-line-subtle bg-hull-900 px-2 py-1 text-xs text-hull-200 transition-colors duration-snap ease-ui focus:border-brand-500 focus:outline-none"
+                    >
+                      {(Object.keys(AVAILABILITY_LABEL) as Availability[]).map((a) => (
+                        <option key={a} value={a}>
+                          {AVAILABILITY_LABEL[a]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 <Button
                   variant="quiet"
                   onClick={() => removeShip(ship.id)}

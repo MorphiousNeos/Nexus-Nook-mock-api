@@ -31,6 +31,7 @@ interface SessionContextValue {
   deleteAccount: () => Promise<void>
   updateProfile: (patch: Partial<Omit<UserProfile, 'id'>>) => Promise<void>
   addShip: (ship: Omit<Ship, 'id'>) => Promise<void>
+  updateShip: (id: string, patch: Partial<Omit<Ship, 'id'>>) => Promise<void>
   removeShip: (id: string) => Promise<void>
   addItem: (item: Omit<InventoryItem, 'id'>) => Promise<void>
   removeItem: (id: string) => Promise<void>
@@ -118,6 +119,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const addShip = useCallback(
     async (ship: Omit<Ship, 'id'>) => {
       const fleet = await store.addShip(ship)
+      setState((prev) => (prev ? { ...prev, fleet } : prev))
+    },
+    [store],
+  )
+
+  const updateShip = useCallback(
+    async (id: string, patch: Partial<Omit<Ship, 'id'>>) => {
+      const fleet = await store.updateShip(id, patch)
       setState((prev) => (prev ? { ...prev, fleet } : prev))
     },
     [store],
@@ -255,6 +264,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     deleteAccount,
     updateProfile,
     addShip,
+    updateShip,
     removeShip,
     addItem,
     removeItem,
