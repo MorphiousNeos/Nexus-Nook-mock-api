@@ -1,11 +1,12 @@
 import { attentionItems } from './fleetInsights'
-import type {
-  AppState,
-  BlueprintEntry,
-  HaulingContract,
-  OpsActivity,
-  OpsSession,
-} from './types'
+import {
+  contractProgress,
+  haulingAlerts,
+  type ContractProgress,
+} from './haulingInsights'
+import type { AppState, BlueprintEntry, OpsActivity, OpsSession } from './types'
+
+export type { ContractProgress }
 
 /**
  * Derived overview insight.
@@ -46,12 +47,6 @@ export type OverviewAlert = {
   to: string
 }
 
-/** A contract whose stops are all done but which is still marked active. */
-function contractIsCloseable(c: HaulingContract): boolean {
-  const stops = list(c?.stops)
-  return c?.status === 'active' && stops.length > 0 && stops.every((s) => s?.done)
-}
-
 /** A blueprint that is fully gathered but not yet marked crafted. */
 function blueprintIsReady(bp: BlueprintEntry): boolean {
   if (!bp || bp.status === 'crafted') return false
@@ -80,15 +75,10 @@ export function overviewAlerts(state: AppState | null, now = Date.now()): Overvi
       }))
     : []
 
-  for (const c of list(state.hauling)) {
-    if (!contractIsCloseable(c)) continue
-    alerts.push({
-      id: `haul-done-${c.id}`,
-      tone: 'caution',
-      title: `${titleOf(c.name, 'Untitled contract')} is ready to close out`,
-      detail: 'Every stop is done — mark it delivered to clear it from your board.',
-      to: '/hauling',
-    })
+  // Hauling owns its own rule for what needs a decision; Overview only adds
+  // the route to act on it. Two implementations would eventually disagree.
+  for (const a of haulingAlerts(list(state.hauling))) {
+    alerts.push({ ...a, to: '/hauling' })
   }
 
   for (const bp of list(state.blueprints)) {
@@ -108,15 +98,6 @@ export function overviewAlerts(state: AppState | null, now = Date.now()): Overvi
 
 /* ------------------------------------------------------------- in flight -- */
 
-export type ContractProgress = {
-  id: string
-  name: string
-  done: number
-  total: number
-  remaining: number
-  reward: number
-}
-
 export type SessionProgress = {
   id: string
   name: string
@@ -133,19 +114,6 @@ export type InFlight = {
   /** Running net across open sessions. Can legitimately be negative. */
   opsNet: number
   count: number
-}
-
-function contractProgress(c: HaulingContract): ContractProgress {
-  const stops = list(c?.stops)
-  const done = stops.filter((s) => s?.done).length
-  return {
-    id: c.id,
-    name: titleOf(c.name, 'Untitled contract'),
-    done,
-    total: stops.length,
-    remaining: Math.max(0, stops.length - done),
-    reward: Math.max(0, num(c?.reward)),
-  }
 }
 
 function sessionProgress(s: OpsSession): SessionProgress {
