@@ -46,9 +46,13 @@ export function HeroModule({
           {eyebrow && (
             <p className="font-mono text-label uppercase text-hull-400">{eyebrow}</p>
           )}
-          <div className="mt-2 font-display text-3xl font-semibold leading-tight tracking-tight text-hull-100 sm:text-4xl">
+          {/* An h1, not a div: this is the page's title, and a hero page had no
+              document heading at all without it. Tailwind's preflight strips the
+              browser's own h1 size, weight and margin, so the element name
+              changes and nothing about the rendering does. */}
+          <h1 className="mt-2 font-display text-3xl font-semibold leading-tight tracking-tight text-hull-100 sm:text-4xl">
             {title}
-          </div>
+          </h1>
           {lede && (
             <div className="mt-3 max-w-2xl text-sm leading-relaxed text-hull-300 sm:text-base">
               {lede}
