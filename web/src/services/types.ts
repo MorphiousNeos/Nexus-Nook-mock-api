@@ -257,6 +257,7 @@ export interface Store {
   updateProfile(patch: Partial<Omit<UserProfile, 'id'>>): Promise<UserProfile>
 
   addShip(ship: Omit<Ship, 'id'>): Promise<Ship[]>
+  updateShip(id: string, patch: Partial<Omit<Ship, 'id'>>): Promise<Ship[]>
   removeShip(id: string): Promise<Ship[]>
 
   addItem(item: Omit<InventoryItem, 'id'>): Promise<InventoryItem[]>
