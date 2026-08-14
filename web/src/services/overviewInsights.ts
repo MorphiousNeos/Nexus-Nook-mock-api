@@ -4,7 +4,7 @@ import {
   haulingAlerts,
   type ContractProgress,
 } from './haulingInsights'
-import type { AppState, BlueprintEntry, OpsActivity, OpsSession } from './types'
+import type { AppState, BlueprintEntry } from './types'
 
 export type { ContractProgress }
 
@@ -98,62 +98,37 @@ export function overviewAlerts(state: AppState | null, now = Date.now()): Overvi
 
 /* ------------------------------------------------------------- in flight -- */
 
-export type SessionProgress = {
-  id: string
-  name: string
-  activity: OpsActivity
-  crew: number
-  net: number
-}
-
 export type InFlight = {
   contracts: ContractProgress[]
-  sessions: SessionProgress[]
   /** Sum of the payouts the player recorded against contracts still running. */
   pendingReward: number
-  /** Running net across open sessions. Can legitimately be negative. */
-  opsNet: number
   count: number
-}
-
-function sessionProgress(s: OpsSession): SessionProgress {
-  return {
-    id: s.id,
-    name: titleOf(s.name, 'Untitled session'),
-    activity: s.activity,
-    crew: list(s?.crew).length,
-    net: list(s?.entries).reduce((sum, e) => sum + num(e?.amount), 0),
-  }
 }
 
 /**
  * Work the player has started and not finished.
  *
- * Contracts are ordered by how close they are to done, because the nearest one
- * to finishing is the one worth picking back up. Sessions are ordered by net,
- * largest first, since that is the only magnitude a session carries.
+ * Contracts only. Ops used to be read from AppState.opsSessions, which nothing
+ * in the app can write — ops moved to the shared, server-held board and the
+ * local model was left behind with full plumbing and no UI. Reading it made
+ * Overview quietly under-report for every real account, so the dead source is
+ * gone and MiningPage owns ops.
+ *
+ * Ordered by how close each contract is to done, because the nearest one to
+ * finishing is the one worth picking back up.
  */
 export function inFlight(state: AppState | null): InFlight {
-  if (!state) {
-    return { contracts: [], sessions: [], pendingReward: 0, opsNet: 0, count: 0 }
-  }
+  if (!state) return { contracts: [], pendingReward: 0, count: 0 }
 
   const contracts = list(state.hauling)
     .filter((c) => c?.status === 'active')
     .map(contractProgress)
     .sort((a, b) => a.remaining - b.remaining || b.reward - a.reward)
 
-  const sessions = list(state.opsSessions)
-    .filter((s) => s && !s.closed)
-    .map(sessionProgress)
-    .sort((a, b) => b.net - a.net)
-
   return {
     contracts,
-    sessions,
     pendingReward: contracts.reduce((sum, c) => sum + c.reward, 0),
-    opsNet: sessions.reduce((sum, s) => sum + s.net, 0),
-    count: contracts.length + sessions.length,
+    count: contracts.length,
   }
 }
 
@@ -165,7 +140,6 @@ export function isNewOperation(state: AppState | null): boolean {
   return (
     list(state.fleet).length === 0 &&
     list(state.hauling).length === 0 &&
-    list(state.opsSessions).length === 0 &&
     list(state.inventory).length === 0 &&
     list(state.blueprints).length === 0
   )

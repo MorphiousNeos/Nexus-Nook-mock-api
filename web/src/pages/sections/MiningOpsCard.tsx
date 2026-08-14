@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { useSession } from '../../SessionContext'
-import { Badge, Button, Card, EmptyState, Field, Skeleton } from '../../components/ui'
+import { Badge, Button, EmptyState, Field, Skeleton } from '../../components/ui'
+import { ActionModule, DataModule } from '../../components/modules'
+import {
+  ACTIVITY_LABEL,
+  closedOps,
+  openOps,
+  ownedBy,
+} from '../../services/miningInsights'
 import {
   addSharedOpsEntry,
   communityAvailable,
@@ -10,7 +16,6 @@ import {
   getSharedOps,
   joinSharedOps,
   leaveSharedOps,
-  listSharedOps,
   relativeTime,
   setSharedOpsShares,
   toggleSharedOpsClosed,
@@ -19,13 +24,6 @@ import {
   type SharedOpsSummary,
 } from '../../services/community'
 import CommunityNotice from '../community/CommunityNotice'
-
-const ACTIVITY_LABELS: Record<SharedOpsActivity, string> = {
-  mining: '⛏️ Mining',
-  salvage: '🔧 Salvage',
-  cargo: '📦 Cargo',
-  other: '🛰️ Other',
-}
 
 function formatAuec(n: number): string {
   return `${Math.round(n).toLocaleString()} aUEC`
@@ -169,7 +167,7 @@ function SessionDetail({
       <div className="rounded-xl border border-hull-800 bg-hull-950/50 p-4">
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-medium text-hull-100">
-            {ACTIVITY_LABELS[detail.activity].split(' ')[0]} {detail.name}
+            {detail.name}
           </p>
           {detail.closed && <Badge tone="slate">Closed</Badge>}
           <Badge tone="purple">Run by {detail.owner || 'Unknown'}</Badge>
@@ -407,53 +405,45 @@ function SessionDetail({
   )
 }
 
-export default function MiningOpsCard() {
-  const { state } = useSession()
-  const me = state?.profile.displayName ?? ''
-
+/**
+ * The ops board.
+ *
+ * The session list is fetched by the page and passed in, so the briefing above
+ * and the board below are always the same data. Everything else — creating an
+ * op, opening one, the crew and ledger detail — is unchanged.
+ */
+export default function MiningOpsCard({
+  me,
+  sessions,
+  loading,
+  error,
+  onRefresh,
+}: {
+  me: string
+  sessions: SharedOpsSummary[]
+  loading: boolean
+  error: string | null
+  onRefresh: () => Promise<void>
+}) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [sessions, setSessions] = useState<SharedOpsSummary[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const [formOpen, setFormOpen] = useState(false)
   const [name, setName] = useState('')
   const [activity, setActivity] = useState<SharedOpsActivity>('mining')
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      setSessions(await listSharedOps())
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load sessions.')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!communityAvailable) {
-      setLoading(false)
-      return
-    }
-    void refresh()
-  }, [refresh])
-
   if (!communityAvailable) return <CommunityNotice />
 
   if (selectedId) {
     return (
-      <Card title="Mining & Salvage Ops" icon="⛏️">
+      <DataModule title="Session detail">
         <SessionDetail
           sessionId={selectedId}
           me={me}
           onBack={() => setSelectedId(null)}
-          onChanged={refresh}
+          onChanged={onRefresh}
         />
-      </Card>
+      </DataModule>
     )
   }
 
@@ -467,7 +457,7 @@ export default function MiningOpsCard() {
       setName('')
       setActivity('mining')
       setFormOpen(false)
-      await refresh()
+      await onRefresh()
       if (id) setSelectedId(id)
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Could not create the session.')
@@ -476,8 +466,11 @@ export default function MiningOpsCard() {
     }
   }
 
-  const open = sessions.filter((s) => !s.closed)
-  const closed = sessions.filter((s) => s.closed)
+  const yours = ownedBy(sessions, me)
+  const yoursOpen = openOps(yours)
+  // The board minus your own open ops, so nothing appears twice on the page.
+  const others = openOps(sessions).filter((s) => !yoursOpen.some((y) => y.id === s.id))
+  const closed = closedOps(sessions)
 
   function renderRow(s: SharedOpsSummary) {
     return (
@@ -485,24 +478,27 @@ export default function MiningOpsCard() {
         <button
           type="button"
           onClick={() => setSelectedId(s.id)}
-          className="w-full rounded-lg border border-hull-800 bg-hull-950/50 px-3 py-3 text-left transition hover:border-brand-700/60 hover:bg-hull-900/60 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          className="w-full rounded-control px-3 py-3 text-left transition-colors duration-ui ease-ui hover:bg-hull-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-medium text-hull-100">
-                {ACTIVITY_LABELS[s.activity].split(' ')[0]} {s.name || 'Untitled session'}
+              <p className="truncate font-medium text-hull-100">
+                {s.name || 'Untitled session'}
                 {s.closed && (
-                  <span className="ml-2 text-[10px] uppercase text-hull-500">closed</span>
+                  <span className="ml-2 font-mono text-label uppercase text-hull-500">
+                    closed
+                  </span>
                 )}
               </p>
-              <p className="mt-0.5 text-xs text-hull-500">
-                {s.owner || 'Unknown'} · {s.crewCount}{' '}
-                {s.crewCount === 1 ? 'crew member' : 'crew members'} ·{' '}
-                {relativeTime(s.createdAt)}
+              <p className="mt-0.5 truncate text-xs text-hull-400">
+                {ACTIVITY_LABEL[s.activity]} · {s.owner || 'Unknown'} · {s.crewCount}{' '}
+                {s.crewCount === 1 ? 'crew' : 'crew'} · {relativeTime(s.createdAt)}
               </p>
             </div>
             <span
-              className={`shrink-0 text-sm font-semibold tabular-nums ${s.net >= 0 ? 'text-positive-300' : 'text-danger-400'}`}
+              className={`shrink-0 text-sm font-semibold tabular-nums ${
+                s.net >= 0 ? 'text-positive-300' : 'text-danger-300'
+              }`}
             >
               {formatAuec(s.net)}
             </span>
@@ -513,88 +509,106 @@ export default function MiningOpsCard() {
   }
 
   return (
-    <Card
-      title="Mining & Salvage Ops"
-      icon="⛏️"
-      action={
-        <Button
-          variant={formOpen ? 'ghost' : 'primary'}
-          onClick={() => setFormOpen((o) => !o)}
-        >
-          {formOpen ? 'Close' : 'New session'}
-        </Button>
-      }
-    >
-      <p className="mb-4 text-xs text-hull-400">
-        Community crew sessions — anyone can browse, join an open crew, and log the take
-        together. Payouts split by shares, ready to paste into Discord.
-      </p>
-
-      {formOpen && (
-        <form
-          onSubmit={submit}
-          className="mb-5 grid gap-3 rounded-xl border border-hull-800 bg-hull-950/50 p-4 sm:grid-cols-2"
-        >
-          <Field
-            label="Session name"
-            placeholder="Sunday Quantanium run"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoFocus
-          />
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-hull-400">
-              Activity
-            </span>
-            <select
-              value={activity}
-              onChange={(e) => setActivity(e.target.value as SharedOpsActivity)}
-              className="w-full rounded-lg border border-hull-700 bg-hull-950/60 px-3 py-2 text-sm text-hull-100 focus:border-brand-500 focus:outline-none"
-            >
-              {(Object.keys(ACTIVITY_LABELS) as SharedOpsActivity[]).map((a) => (
-                <option key={a} value={a}>
-                  {ACTIVITY_LABELS[a]}
-                </option>
-              ))}
-            </select>
-          </label>
-          {formError && (
-            <p className="text-sm text-caution-300 sm:col-span-2">{formError}</p>
-          )}
-          <div className="sm:col-span-2">
-            <Button type="submit" disabled={busy || !name.trim()}>
-              {busy ? 'Creating…' : 'Start session'}
+    <div className="space-y-6 sm:space-y-8">
+      {error && (
+        <DataModule title="Ops board">
+          <EmptyState icon="⚠️">{error}</EmptyState>
+          <div className="mt-4">
+            <Button variant="ghost" onClick={() => void onRefresh()}>
+              Try again
             </Button>
           </div>
-        </form>
+        </DataModule>
       )}
 
-      {error && <EmptyState icon="⚠️">{error}</EmptyState>}
-
       {!error && loading && sessions.length === 0 && (
-        <div className="space-y-2">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
-        </div>
+        <DataModule title="Ops board">
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        </DataModule>
       )}
 
       {!error && !loading && sessions.length === 0 && (
-        <EmptyState>
-          No sessions yet. Start one and your crew can join from their own devices.
-        </EmptyState>
+        <DataModule title="Ops board">
+          <EmptyState>
+            No sessions yet. Start one and your crew can join from their own devices.
+          </EmptyState>
+        </DataModule>
       )}
 
-      {!error && open.length > 0 && <ul className="space-y-2">{open.map(renderRow)}</ul>}
+      {!error && yoursOpen.length > 0 && (
+        <DataModule title="Your open ops" description="Ops you started.">
+          <ul className="-mx-3 space-y-1">{yoursOpen.map(renderRow)}</ul>
+        </DataModule>
+      )}
+
+      {!error && others.length > 0 && (
+        <DataModule
+          title="Community board"
+          description="Open crews from across the community. Anyone can browse and join."
+        >
+          <ul className="-mx-3 space-y-1">{others.map(renderRow)}</ul>
+        </DataModule>
+      )}
 
       {!error && closed.length > 0 && (
-        <div className="mt-5">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-hull-500">
-            Closed sessions
-          </h3>
-          <ul className="space-y-2">{closed.map(renderRow)}</ul>
-        </div>
+        <DataModule title="Closed" description={`${closed.length} finished.`}>
+          <ul className="-mx-3 space-y-1">{closed.map(renderRow)}</ul>
+        </DataModule>
       )}
-    </Card>
+
+      <ActionModule title="Start an op">
+        {!formOpen ? (
+          <Button onClick={() => setFormOpen(true)}>New session</Button>
+        ) : (
+          <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
+            <Field
+              label="Session name"
+              placeholder="Sunday Quantanium run"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+            <label className="block">
+              <span className="mb-1 block font-mono text-label uppercase text-hull-400">
+                Activity
+              </span>
+              <select
+                value={activity}
+                onChange={(e) => setActivity(e.target.value as SharedOpsActivity)}
+                className="w-full rounded-control border border-line-subtle bg-hull-950 px-3 py-2 text-sm text-hull-100 transition-colors duration-snap ease-ui focus:border-brand-500 focus:outline-none"
+              >
+                {(Object.keys(ACTIVITY_LABEL) as SharedOpsActivity[]).map((a) => (
+                  <option key={a} value={a}>
+                    {ACTIVITY_LABEL[a]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {formError && (
+              <p className="text-sm text-caution-300 sm:col-span-2">{formError}</p>
+            )}
+            <div className="flex gap-2 sm:col-span-2">
+              <Button type="submit" disabled={busy || !name.trim()}>
+                {busy ? 'Creating…' : 'Start session'}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setFormOpen(false)
+                  setFormError(null)
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        )}
+      </ActionModule>
+    </div>
   )
 }

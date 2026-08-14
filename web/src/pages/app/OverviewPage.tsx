@@ -11,7 +11,13 @@ import {
   SummaryModule,
   type SummaryStat,
 } from '../../components/modules'
-import { DISCORD_INVITE, type OpsActivity, type ServerStatus } from '../../services/store'
+import { DISCORD_INVITE, type ServerStatus } from '../../services/store'
+import {
+  communityAvailable,
+  listSharedOps,
+  type SharedOpsSummary,
+} from '../../services/community'
+import { ACTIVITY_LABEL, openOps, ownedBy } from '../../services/miningInsights'
 import { relativeTime } from '../../services/community'
 import { readiness } from '../../services/fleetInsights'
 import {
@@ -30,13 +36,6 @@ import {
   type ExecPhaseInfo,
 } from '../../services/execTimer'
 import { getCommLinks, type CommLink } from '../../services/scwiki'
-
-const ACTIVITY_LABEL: Record<OpsActivity, string> = {
-  mining: 'Mining',
-  salvage: 'Salvage',
-  cargo: 'Cargo',
-  other: 'Ops',
-}
 
 const PHASE_BAR: Record<ExecPhase, string> = {
   open: 'bg-positive-500',
@@ -307,6 +306,7 @@ function CommLinksModule() {
 export default function OverviewPage() {
   const { state, getServerStatus } = useSession()
   const [servers, setServers] = useState<ServerStatus[] | null>(null)
+  const [ops, setOps] = useState<SharedOpsSummary[] | null>(null)
 
   useEffect(() => {
     let active = true
@@ -317,6 +317,19 @@ export default function OverviewPage() {
       active = false
     }
   }, [getServerStatus])
+
+  // Ops live on the server, not in session state. Same posture as the shard
+  // tile: fetch on mount, and on failure show nothing rather than a wrong zero.
+  useEffect(() => {
+    if (!communityAvailable) return
+    let active = true
+    listSharedOps()
+      .then((rows) => active && setOps(rows))
+      .catch(() => active && setOps(null))
+    return () => {
+      active = false
+    }
+  }, [])
 
   const view = useMemo(() => {
     const fleet = Array.isArray(state?.fleet) ? state!.fleet : []
@@ -333,6 +346,13 @@ export default function OverviewPage() {
 
   const onlineCount = servers?.filter((s) => s.status === 'online').length ?? 0
 
+  // Only ops this player owns. The ops endpoint returns the whole community
+  // board, so an unscoped count would report everyone's activity as if it were
+  // theirs. Ops merely joined are not identifiable from the list at all.
+  const me = state?.profile?.displayName ?? ''
+  const myOps = ops ? openOps(ownedBy(ops, me)) : []
+  const inFlightCount = flight.count + myOps.length
+
   const stats: SummaryStat[] = [
     {
       label: 'Fleet ready',
@@ -346,9 +366,9 @@ export default function OverviewPage() {
     },
     {
       label: 'In flight',
-      value: String(flight.count),
-      note: flight.count
-        ? `${plural(flight.contracts.length, 'contract', 'contracts')} · ${plural(flight.sessions.length, 'session', 'sessions')}`
+      value: String(inFlightCount),
+      note: inFlightCount
+        ? `${plural(flight.contracts.length, 'contract', 'contracts')}${myOps.length ? ` · ${plural(myOps.length, 'op', 'ops')}` : ''}`
         : 'Nothing running',
     },
     {
@@ -397,7 +417,7 @@ export default function OverviewPage() {
           ? `Welcome back, ${firstName}. Nothing needs a decision. Primary hull is ${r.primary.name}.`
           : `Welcome back, ${firstName}. Nothing needs a decision right now.`
 
-  const bothRunning = flight.contracts.length > 0 && flight.sessions.length > 0
+  const bothRunning = flight.contracts.length > 0 && myOps.length > 0
 
   return (
     <PageContainer>
@@ -441,7 +461,7 @@ export default function OverviewPage() {
         </section>
       )}
 
-      {flight.count > 0 && (
+      {inFlightCount > 0 && (
         <section className="mb-8 sm:mb-10">
           <div className={`grid gap-6 ${bothRunning ? 'lg:grid-cols-2' : ''}`}>
             {flight.contracts.length > 0 && (
@@ -494,14 +514,10 @@ export default function OverviewPage() {
               </DataModule>
             )}
 
-            {flight.sessions.length > 0 && (
+            {myOps.length > 0 && (
               <DataModule
-                title="Open sessions"
-                description={
-                  flight.opsNet !== 0
-                    ? `${formatAuec(flight.opsNet)} net across open sessions.`
-                    : 'No earnings logged yet.'
-                }
+                title="Your open ops"
+                description="Ops you started. Open one to log the take and split payouts."
                 action={
                   <Link
                     to="/mining"
@@ -512,30 +528,30 @@ export default function OverviewPage() {
                 }
               >
                 <ul className="space-y-3">
-                  {flight.sessions.slice(0, 4).map((s) => (
-                    <li key={s.id} className="flex items-baseline justify-between gap-3">
+                  {myOps.slice(0, 4).map((o) => (
+                    <li key={o.id} className="flex items-baseline justify-between gap-3">
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium text-hull-100">
-                          {s.name}
+                          {o.name || 'Untitled session'}
                         </span>
                         <span className="text-xs text-hull-400">
-                          {ACTIVITY_LABEL[s.activity] ?? ACTIVITY_LABEL.other} ·{' '}
-                          {plural(s.crew, 'crew member', 'crew members')}
+                          {ACTIVITY_LABEL[o.activity]} ·{' '}
+                          {plural(o.crewCount, 'crew', 'crew')}
                         </span>
                       </span>
                       <span
                         className={`shrink-0 text-sm font-semibold tabular-nums ${
-                          s.net >= 0 ? 'text-positive-300' : 'text-danger-300'
+                          o.net >= 0 ? 'text-positive-300' : 'text-danger-300'
                         }`}
                       >
-                        {formatAuec(s.net)}
+                        {formatAuec(o.net)}
                       </span>
                     </li>
                   ))}
                 </ul>
-                {flight.sessions.length > 4 && (
+                {myOps.length > 4 && (
                   <p className="mt-4 text-xs text-hull-500">
-                    and {flight.sessions.length - 4} more
+                    and {myOps.length - 4} more
                   </p>
                 )}
               </DataModule>
